@@ -1,0 +1,244 @@
+<html lang="zh-CN">
+
+<head>
+  <script>
+    var _hmt = _hmt || [];
+    (function () {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?2da465d5755c913e4afdaf5e20230f55";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>灵性修行版的人格测试</title>
+  <meta name="description" content="一场融合灵性觉醒、MBTI与SBTI的趣味人格测试，33道题揭示你在人间这场荒诞剧中扮演的真实角色。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Outfit:wght@300;400;500;600;700;800&swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=2">
+</head>
+
+<body>
+  <!-- 粒子背景 -->
+  <canvas id="particles-canvas"></canvas>
+
+  <!-- 返回主页按钮 -->
+  <a href="../../index.html" class="nav-home-btn" title="返回主页">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+    <span>返回主页</span>
+  </a>
+
+  <!-- 开始页 -->
+  <section id="landing" class="page active">
+    <div class="landing-content">
+      <div class="logo-glow"></div>
+      <h1 class="title-main">
+        <span class="title-line2">灵性修行者</span>
+        <span class="title-line2">专属人格测试</span>
+      </h1>
+      <p class="subtitle"></p>
+      <div class="intro-cards">
+        <div class="intro-card">
+          <div class="intro-icon">🎭</div>
+          <p>33道直击灵魂的拷问</p>
+        </div>
+        <div class="intro-card">
+          <div class="intro-icon">🔮</div>
+          <p>12种独特人格画像</p>
+        </div>
+        <div class="intro-card">
+          <div class="intro-icon">⚡</div>
+          <p>无需注册 即刻揭晓</p>
+        </div>
+      </div>
+      <div class="action-buttons-wrapper">
+        <button id="start-btn" class="btn-primary" onclick="startTest()">
+          <span>开始解剖灵魂</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </button>
+        <a href="types.html" class="btn-types-preview" id="browse-types-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+          <span>浏览12种人格图谱</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
+      <p class="disclaimer"> 🤷‍♂️本测试纯属娱乐与自我探索，不构成任何心理诊断</p>
+    </div>
+  </section>
+
+  <!-- 测试页 -->
+  <section id="quiz" class="page">
+    <div class="quiz-header">
+      <div class="progress-container">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <div class="progress-text">
+        <span id="current-q">1</span> / <span id="total-q">33</span>
+      </div>
+    </div>
+    <div class="quiz-body">
+      <div class="question-container" id="question-container">
+        <h2 class="question-number" id="q-number">Q1</h2>
+        <p class="question-text" id="q-text"></p>
+        <div class="options" id="options-container"></div>
+      </div>
+    </div>
+    <div class="quiz-footer">
+      <button class="btn-home" id="home-btn" onclick="restartTest()" title="返回首页">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+      </button>
+      <button class="btn-secondary" id="prev-btn" onclick="prevQuestion()" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        上一题
+      </button>
+      <button class="btn-primary" id="next-btn" onclick="nextQuestion()" disabled>
+        下一题
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- 加载页 -->
+  <section id="loading" class="page">
+    <div class="loading-content">
+      <div class="loading-orb">
+        <div class="orb-ring"></div>
+        <div class="orb-ring"></div>
+        <div class="orb-ring"></div>
+        <div class="orb-core"></div>
+      </div>
+      <h2 class="loading-text">灵魂数据解析中...</h2>
+      <p class="loading-sub" id="loading-sub">正在剥离你的社会面具</p>
+    </div>
+  </section>
+
+  <!-- 结果页 -->
+  <section id="result" class="page">
+    <div class="result-content">
+      <div class="result-character-image" id="result-character-image">
+        <img id="character-img" src="" alt="人格角色形象" />
+      </div>
+      <div class="result-badge" id="result-badge">🎭</div>
+      <h1 class="result-title" id="result-title"></h1>
+      <h2 class="result-subtitle" id="result-subtitle"></h2>
+      <div class="result-meter">
+        <div class="meter-row">
+          <span class="meter-label">面具厚度</span>
+          <div class="meter-bar">
+            <div class="meter-fill" id="meter-mask"></div>
+          </div>
+          <span class="meter-value" id="meter-mask-val"></span>
+        </div>
+        <div class="meter-row">
+          <span class="meter-label">灵魂清醒度</span>
+          <div class="meter-bar">
+            <div class="meter-fill" id="meter-awake"></div>
+          </div>
+          <span class="meter-value" id="meter-awake-val"></span>
+        </div>
+        <div class="meter-row">
+          <span class="meter-label">摆烂指数</span>
+          <div class="meter-bar">
+            <div class="meter-fill" id="meter-chill"></div>
+          </div>
+          <span class="meter-value" id="meter-chill-val"></span>
+        </div>
+        <div class="meter-row">
+          <span class="meter-label">内心戏浓度</span>
+          <div class="meter-bar">
+            <div class="meter-fill" id="meter-drama"></div>
+          </div>
+          <span class="meter-value" id="meter-drama-val"></span>
+        </div>
+      </div>
+      <div class="result-description" id="result-description"></div>
+      <div class="result-tags" id="result-tags"></div>
+      <div class="result-quote" id="result-quote"></div>
+      <div class="result-mbti" id="result-mbti"></div>
+      <div class="result-actions">
+        <button class="btn-share" onclick="shareResult()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="18" cy="5" r="3" />
+            <circle cx="6" cy="12" r="3" />
+            <circle cx="18" cy="19" r="3" />
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+          </svg>
+          生成分享海报
+        </button>
+        <button class="btn-secondary" onclick="restartTest()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 4v6h6M23 20v-6h-6" />
+            <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
+          </svg>
+          重新测试
+        </button>
+      </div>
+
+      <!-- 作者说明与二维码 -->
+      <div class="author-divider"
+        style="margin: 35px auto 25px auto; width: 100%; height: 2px; background: linear-gradient(90deg, transparent 5%, var(--accent-1) 50%, transparent 95%); box-shadow: 0 0 15px var(--accent-1), 0 0 5px rgba(255, 255, 255, 0.3); opacity: 0.8;">
+      </div>
+      <div class="author-credit"
+        style="display: flex; justify-content: space-between; align-items: center; text-align: left; padding: 0 5px;">
+        <div style="flex: 1;">
+          <p class="author-info" style="margin: 0; line-height: 1.8; font-size: 0.9rem;">
+            作者：<span class="author-name">青野</span><br>
+            公众号：<a
+              href="https://mp.weixin.qq.com/mp/profile_ext?action=home&__biz=MzI1ODA1OTMxMQ==&subscene=0#wechat_redirect"
+              target="_blank" rel="noopener noreferrer" class="author-link">觉醒诗社 <svg width="14" height="14"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg></a>
+          </p>
+        </div>
+        <div style="margin-left: 20px; text-align: center; display: flex; flex-direction: column; align-items: center;">
+          <img src="images/qrcode.png" alt="扫码测试"
+            style="width: 80px; height: 80px; object-fit: contain; border-radius: 8px; border: 2px solid rgba(255,255,255,0.15); background: white; padding: 3px; margin-bottom: 0;">
+          <span
+            style="font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-top: 6px; white-space: nowrap;">扫码测试灵格</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Image Modal -->
+  <div id="image-modal" class="image-modal" onclick="closeImageModal()">
+    <img id="modal-img" src="" alt="大图查看" />
+    <div class="modal-close">✕ 关闭</div>
+  </div>
+
+  <!-- Toast通知 -->
+  <div id="toast" class="toast"></div>
+
+  <script src="questions.js?v=2"></script>
+  <script src="results.js?v=2"></script>
+  <script src="app.js?v=2"></script>
+</body>
+
+</html>

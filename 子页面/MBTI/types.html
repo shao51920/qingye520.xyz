@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?2da465d5755c913e4afdaf5e20230f55";
+      var s = document.getElementsByTagName("script")[0]; 
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>12种人格类型一览 — 灵格测试</title>
+  <meta name="description" content="浏览灵格测试的12种独特人格画像，了解每种人格的特征、标签与灵魂金句。">
+  <link rel="icon" type="image/png" href="images/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="types.css">
+</head>
+
+<body>
+  <!-- 粒子背景 -->
+  <canvas id="particles-canvas"></canvas>
+
+  <!-- 顶部导航 -->
+  <nav class="types-nav" id="types-nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        <span>返回首页</span>
+      </a>
+      <div class="nav-title">12种人格类型</div>
+      <a href="index.html" class="nav-action" onclick="goToTest()">
+        <span>开始测试</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+      </a>
+    </div>
+  </nav>
+
+  <!-- 页面主体 -->
+  <main class="types-main">
+    <!-- 头部区域 -->
+    <section class="types-hero">
+      <div class="hero-glow"></div>
+      <h1 class="hero-title">
+        <span class="hero-emoji">🔮</span>
+        <span>人格图谱总览</span>
+      </h1>
+      <p class="hero-desc">
+        12种独特的人格画像，融合灵性觉醒 × MBTI × SBTI 恶搞体系<br>
+        <span class="hero-hint">点击卡片查看详细解读 ↓</span>
+      </p>
+    </section>
+
+    <!-- 预览网格 -->
+    <section class="types-grid-section">
+      <div class="types-grid" id="types-grid">
+        <!-- JS动态生成 -->
+      </div>
+    </section>
+
+    <!-- 分割线 -->
+    <div class="section-divider">
+      <div class="divider-line"></div>
+      <span class="divider-text">详细解读</span>
+      <div class="divider-line"></div>
+    </div>
+
+    <!-- 详情列表 -->
+    <section class="types-detail-section" id="types-detail">
+      <!-- JS动态生成 -->
+    </section>
+
+    <!-- 底部CTA -->
+    <section class="types-footer-cta">
+      <div class="cta-glow"></div>
+      <h2 class="cta-title">想知道你是哪种角色？</h2>
+      <p class="cta-desc">33道直击灵魂的拷问，即刻揭晓你的人格画像</p>
+      <a href="index.html" class="btn-cta" onclick="goToTest()">
+        <span>开始灵魂解剖</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+      </a>
+    </section>
+
+    <!-- 作者说明 -->
+    <footer class="types-footer">
+      <div class="footer-divider"></div>
+      <p class="footer-info">
+        作者：<span class="footer-name">青野</span> &nbsp;&nbsp; 公众号：<a
+          href="https://mp.weixin.qq.com/mp/profile_ext?action=home&__biz=MzI1ODA1OTMxMQ==&subscene=0#wechat_redirect"
+          target="_blank" rel="noopener noreferrer" class="footer-link">觉醒诗社
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            style="vertical-align: middle;">
+            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+            <polyline points="15 3 21 3 21 9" />
+            <line x1="10" y1="14" x2="21" y2="3" />
+          </svg></a>
+      </p>
+    </footer>
+  </main>
+
+  <!-- Image Modal -->
+  <div id="image-modal" class="image-modal" onclick="closeImageModal()">
+    <img id="modal-img" src="" alt="大图查看" />
+    <div class="modal-close">✕ 关闭</div>
+  </div>
+
+  <script src="results.js"></script>
+  <script src="types.js"></script>
+</body>
+
+</html>
