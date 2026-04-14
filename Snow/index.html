@@ -37,6 +37,13 @@
             gap: 14px;
             z-index: 200;
             align-items: center;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        #bottom-bar.hidden {
+            opacity: 0;
+            transform: translateX(-50%) translateY(16px);
+            pointer-events: none;
         }
 
         /* 统一圆形按钮（返回 & 设置） */
@@ -261,10 +268,37 @@
         // ── 设置面板开关 ──
         const panel = document.getElementById('ui-panel');
         const toggleBtn = document.getElementById('toggle-btn');
+        const bottomBar = document.getElementById('bottom-bar');
+
+        // 自动隐藏底部按钮栏
+        let hideTimer = null;
+        function showBar() {
+            bottomBar.classList.remove('hidden');
+            clearTimeout(hideTimer);
+            hideTimer = setTimeout(() => {
+                // 面板展开时不隐藏
+                if (panel.classList.contains('collapsed')) {
+                    bottomBar.classList.add('hidden');
+                }
+            }, 3000);
+        }
+        // 初始显示 3 秒后隐藏
+        showBar();
+
+        // 鼠标移动 / 触摸 → 显示按钮栏
+        document.addEventListener('mousemove', showBar);
+        document.addEventListener('touchstart', showBar, { passive: true });
 
         toggleBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             panel.classList.toggle('collapsed');
+            // 面板展开时保持按钮栏可见
+            if (!panel.classList.contains('collapsed')) {
+                clearTimeout(hideTimer);
+                bottomBar.classList.remove('hidden');
+            } else {
+                showBar();
+            }
         });
 
         // 点击面板外任意区域收起面板（移动端友好）
