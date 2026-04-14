@@ -122,8 +122,11 @@ function renderQuestion() {
   const q = questions[currentQuestion];
   const container = document.getElementById('question-container');
 
-  // Animate out
-  container.style.animation = 'fadeSlideOut 0.2s ease forwards';
+  // 第一题无需淡出动画（容器为空），直接渲染以避免闪烁
+  const isEmpty = !container.querySelector('.option');
+  if (!isEmpty) {
+    container.style.animation = 'fadeSlideOut 0.2s ease forwards';
+  }
 
   setTimeout(() => {
     document.getElementById('q-number').textContent = `Q${q.id}`;
