@@ -9,6 +9,16 @@ function showPage(pageId) {
   const page = document.getElementById(pageId);
   page.classList.add('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // 首页和结果页显示返回主页按钮，题目页隐藏
+  const homeBtn = document.getElementById('globalHomeBtn');
+  if (homeBtn) {
+    if (pageId === 'landing' || pageId === 'result') {
+      homeBtn.style.display = 'flex';
+    } else {
+      homeBtn.style.display = 'none';
+    }
+  }
 }
 
 function startTest() {

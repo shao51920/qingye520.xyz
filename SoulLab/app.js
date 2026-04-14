@@ -92,6 +92,20 @@ function showPage(pageId) {
   page.classList.add('active');
   page.style.animation = 'fadeSlideIn 0.6s ease forwards';
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // 首页和结果页显示返回主页按钮，题目页隐藏
+  const homeBtn = document.getElementById('globalHomeBtn');
+  if (homeBtn) {
+    if (pageId === 'landing' || pageId === 'result') {
+      homeBtn.style.display = 'flex';
+    } else {
+      homeBtn.style.display = 'none';
+    }
+  }
+
+  if (pageId === 'quiz') {
+    if (typeof startTimer === 'function') startTimer();
+  }
 }
 
 /* ==============================
