@@ -109,28 +109,50 @@
     /* 首页专属登录欢迎样式 */
     .home-auth-welcome {
       margin: 20px auto 10px auto;
-      font-size: 1.1rem;
-      color: rgba(255, 255, 255, 0.7);
-      letter-spacing: 2px;
+      font-size: 1.2rem;
+      color: rgba(255, 255, 255, 0.85);
+      letter-spacing: 3px;
       font-weight: 300;
       opacity: 0;
       transform: translateY(10px);
       transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      text-shadow: 0 0 20px rgba(201, 168, 76, 0.4);
     }
     .home-auth-welcome.show {
       opacity: 1;
       transform: translateY(0);
     }
     .home-auth-login-trigger {
+      position: relative;
+      display: inline-block;
       color: var(--gold-light);
-      text-decoration: underline;
-      text-underline-offset: 6px;
+      text-decoration: none;
       cursor: pointer;
-      font-weight: 400;
-      transition: color 0.3s;
+      font-weight: 500;
+      transition: all 0.4s ease;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(201, 168, 76, 0.1) 0%, rgba(201, 168, 76, 0.05) 100%);
+      border: 1px solid rgba(201, 168, 76, 0.3);
+      box-shadow: 0 0 15px rgba(201, 168, 76, 0.2), inset 0 0 10px rgba(201, 168, 76, 0.05);
+    }
+    .home-auth-login-trigger::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.4s ease;
     }
     .home-auth-login-trigger:hover {
-      color: white;
+      color: #fff;
+      border-color: var(--gold-light);
+      box-shadow: 0 0 25px rgba(201, 168, 76, 0.4), inset 0 0 15px rgba(201, 168, 76, 0.1);
+      transform: translateY(-2px);
+    }
+    .home-auth-login-trigger:hover::before {
+      opacity: 1;
     }
 
     /* ── 鲸鱼背景 ── */
