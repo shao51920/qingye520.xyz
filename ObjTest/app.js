@@ -2,6 +2,36 @@ let currentQuestion = 0;
 let answers = {};
 let totalScore = 0;
 
+/* ==============================
+   Load Participant Count
+   ============================== */
+async function loadParticipantCount() {
+  try {
+    const { count, error } = await supabase
+      .from('comments')
+      .select('*', { count: 'exact', head: true })
+      .eq('page_type', 'objtest');
+    
+    if (error) throw error;
+    
+    const countEl = document.getElementById('objtest-participant-count');
+    if (countEl) {
+      countEl.textContent = `已有 ${count || 0} 人参与测试`;
+    }
+  } catch (err) {
+    console.error('加载参与人数失败:', err);
+    const countEl = document.getElementById('objtest-participant-count');
+    if (countEl) {
+      countEl.textContent = '已有 -- 人参与测试';
+    }
+  }
+}
+
+// 页面加载时获取参与人数
+if (typeof supabase !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', loadParticipantCount);
+}
+
 function showPage(pageId) {
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
   const targetPage = document.getElementById(pageId);

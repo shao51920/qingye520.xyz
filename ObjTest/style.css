@@ -87,6 +87,18 @@ body {
   text-align: center;
 }
 
+/* Participant Count */
+.participant-count {
+  font-size: 0.95rem;
+  color: var(--accent-main);
+  font-weight: 500;
+  margin: 20px 0;
+  padding: 12px 20px;
+  background: rgba(212, 163, 115, 0.08);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--accent-main);
+}
+
 /* Typography */
 .title-main {
   font-family: var(--font-serif);

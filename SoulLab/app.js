@@ -6,6 +6,36 @@ let answers = {};  // { questionId: selectedOptionIndex }
 let scores = {};   // { personalityKey: totalScore }
 
 /* ==============================
+   Load Participant Count
+   ============================== */
+async function loadParticipantCount() {
+  try {
+    const { count, error } = await supabase
+      .from('comments')
+      .select('*', { count: 'exact', head: true })
+      .eq('page_type', 'soullab');
+    
+    if (error) throw error;
+    
+    const countEl = document.getElementById('soullab-participant-count');
+    if (countEl) {
+      countEl.textContent = `已有 ${count || 0} 人参与测试`;
+    }
+  } catch (err) {
+    console.error('加载参与人数失败:', err);
+    const countEl = document.getElementById('soullab-participant-count');
+    if (countEl) {
+      countEl.textContent = '已有 -- 人参与测试';
+    }
+  }
+}
+
+// 页面加载时获取参与人数
+if (typeof supabase !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', loadParticipantCount);
+}
+
+/* ==============================
    Particles Background
    ============================== */
 (function initParticles() {
@@ -176,7 +206,7 @@ function selectOption(questionId, optionIndex) {
 
   updateNextButton();
 
-  // Auto advance after short delay
+  // Auto advance after short delay (only if not the last question)
   setTimeout(() => {
     if (currentQuestion < questions.length - 1) {
       nextQuestion();
@@ -206,6 +236,9 @@ function updateNextButton() {
 function nextQuestion() {
   const q = questions[currentQuestion];
   if (answers[q.id] === undefined) return;
+
+  // 防止按钮点击触发默认行为
+  if (event) event.preventDefault();
 
   if (currentQuestion < questions.length - 1) {
     currentQuestion++;

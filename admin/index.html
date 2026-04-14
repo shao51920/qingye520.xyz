@@ -245,7 +245,7 @@
       const { count: userCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
       const { count: commentCount } = await supabase.from('comments').select('*', { count: 'exact', head: true });
       const { count: soullabCount } = await supabase.from('comments').select('*', { count: 'exact', head: true }).eq('page_type', 'soullab');
-      const { count: objCount } = await supabase.from('comments').select('*', { count: 'exact', head: true }).eq('page_type', 'objectification');
+      const { count: objCount } = await supabase.from('comments').select('*', { count: 'exact', head: true }).eq('page_type', 'objtest');
 
       document.getElementById('stats').innerHTML = `
         <div class="stat-card"><div class="stat-num">${userCount || 0}</div><div class="stat-label">注册用户</div></div>
