@@ -187,7 +187,12 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="../shared/supabase-config.js"></script>
+  <script>
+    // Supabase 配置（内联以避免路径问题）
+    const SUPABASE_URL = 'https://xcwdgwvtgbqcsslbgtpy.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_g5USxyN0qcqv9peaZE_irQ_B3QIPV_H';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
   <script>
     let adminUser = null;
 
