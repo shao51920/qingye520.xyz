@@ -3,11 +3,12 @@ let answers = {};
 let totalScore = 0;
 
 function showPage(pageId) {
-  document.querySelectorAll('.page').forEach(p => {
-    p.classList.remove('active');
-  });
-  const page = document.getElementById(pageId);
-  page.classList.add('active');
+  document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+  const targetPage = document.getElementById(pageId);
+  if (targetPage) {
+    targetPage.classList.add('active');
+  }
+  
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   // 首页和结果页显示返回主页按钮，题目页隐藏

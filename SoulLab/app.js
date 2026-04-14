@@ -84,13 +84,16 @@ let scores = {};   // { personalityKey: totalScore }
    Navigation
    ============================== */
 function showPage(pageId) {
-  document.querySelectorAll('.page').forEach(p => {
-    p.classList.remove('active');
-    p.style.animation = '';
-  });
-  const page = document.getElementById(pageId);
-  page.classList.add('active');
-  page.style.animation = 'fadeSlideIn 0.6s ease forwards';
+  const pages = document.querySelectorAll('.page');
+  pages.forEach(page => page.classList.remove('active'));
+  
+  const targetPage = document.getElementById(pageId);
+  if (targetPage) {
+    targetPage.classList.add('active');
+    targetPage.style.display = 'block';
+    targetPage.style.animation = 'fadeSlideIn 0.6s ease forwards';
+  }
+  
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   // 首页和结果页显示返回主页按钮，题目页隐藏
