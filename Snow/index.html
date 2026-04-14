@@ -18,69 +18,100 @@
             font-family: 'Microsoft YaHei', sans-serif;
             user-select: none;
             -webkit-user-select: none;
-            touch-action: pan-y;
         }
 
         canvas {
             display: block;
             touch-action: none;
+            position: fixed;
+            top: 0; left: 0;
         }
 
-        #ui-container {
-            position: absolute;
-            top: 20px;
-            right: 20px;
+        /* ── 底部按钮栏 ── */
+        #bottom-bar {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            z-index: 100;
+            gap: 14px;
+            z-index: 200;
+            align-items: center;
         }
 
-        #toggle-btn {
-            background: rgba(255, 255, 255, 0.9);
-            border: none;
+        /* 统一圆形按钮（返回 & 设置） */
+        .icon-btn {
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(10, 10, 30, 0.55);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: rgba(255, 255, 255, 0.85);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.3s;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            flex-shrink: 0;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
         }
 
-        #toggle-btn:active {
-            transform: scale(0.95);
+        .icon-btn:hover,
+        .icon-btn:active {
+            background: rgba(30, 30, 60, 0.75);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
         }
 
+        .icon-btn svg {
+            width: 20px;
+            height: 20px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* ── 设置面板 ── */
         #ui-panel {
-            width: 280px;
-            max-width: calc(100vw - 40px);
-            background: rgba(255, 255, 255, 0.9);
-            color: #333;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
-            transition: opacity 0.3s, transform 0.3s;
-            transform-origin: top right;
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%) scale(1);
+            transform-origin: bottom center;
+            width: 300px;
+            max-width: calc(100vw - 32px);
+            background: rgba(10, 10, 30, 0.82);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 18px 20px 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            z-index: 150;
         }
 
         #ui-panel.collapsed {
             opacity: 0;
-            transform: scale(0.9) translateY(-20px);
+            transform: translateX(-50%) scale(0.92) translateY(12px);
             pointer-events: none;
         }
 
-        h1 {
-            margin: 0 0 12px 0;
-            font-size: 16px;
-            color: #0077cc;
+        #ui-panel h1 {
+            margin: 0 0 14px 0;
+            font-size: 14px;
+            color: rgba(180, 200, 255, 0.9);
             text-align: center;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+            letter-spacing: 0.05em;
         }
 
         .control-group {
@@ -90,138 +121,122 @@
         label {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
             font-size: 12px;
-            color: #555;
+            color: rgba(255, 255, 255, 0.6);
         }
 
         input[type="range"] {
             width: 100%;
             cursor: pointer;
-            accent-color: #0077cc;
+            accent-color: #7b9cff;
         }
 
         input[type="color"] {
             width: 100%;
-            height: 30px;
+            height: 28px;
             border: none;
+            border-radius: 6px;
             cursor: pointer;
+            background: none;
         }
 
         input[type="checkbox"] {
             cursor: pointer;
-            accent-color: #0077cc;
+            accent-color: #7b9cff;
+        }
+
+        hr.panel-divider {
+            border: 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 10px 0;
         }
 
         .instructions {
             font-size: 11px;
-            color: #666;
+            color: rgba(255, 255, 255, 0.35);
             margin-top: 10px;
-            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
             padding-top: 8px;
         }
 
-        ul {
-            padding-left: 18px;
+        .instructions ul {
+            padding-left: 16px;
             margin: 0;
         }
 
-        li {
+        .instructions li {
             margin-bottom: 3px;
-        }
-
-        /* 返回主页按钮样式 */
-        .nav-home-btn {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 16px;
-            background: rgba(255, 255, 255, 0.9);
-            border: none;
-            border-radius: 25px;
-            color: #333;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .nav-home-btn:hover {
-            background: #fff;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-        }
-
-        @media (max-width: 600px) {
-            .nav-home-btn span { display: none; }
-            .nav-home-btn { padding: 10px; border-radius: 50%; }
         }
     </style>
 </head>
 
 <body>
-    <!-- 返回主页按钮 -->
-    <a href="../index.html" class="nav-home-btn" title="返回主页">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
-    </a>
-
     <canvas id="snowCanvas"></canvas>
 
-    <div id="ui-container">
-        <button id="toggle-btn">⚙️</button>
-        <div id="ui-panel">
-            <h1>❄️ 3D 雪景控制台</h1>
+    <!-- 设置面板（默认收起） -->
+    <div id="ui-panel" class="collapsed">
+        <h1>❄️ 3D 雪景控制台</h1>
 
-            <div class="control-group">
-                <label>背景颜色</label>
-                <input type="color" id="bgColor" value="#87CEEB">
-            </div>
-            <div class="control-group">
-                <label>背景深浅</label>
-                <input type="range" id="bgDarkness" min="0" max="1" step="0.05" value="0.2">
-            </div>
-
-            <hr style="border: 0; border-top: 1px solid rgba(0,0,0,0.1); margin: 10px 0;">
-
-            <div class="control-group">
-                <label>雪花密度 <span id="val-density">600</span></label>
-                <input type="range" id="density" min="100" max="4000" step="50" value="600">
-            </div>
-            <div class="control-group">
-                <label>下落速度 <span id="val-speed">1.0</span></label>
-                <input type="range" id="speed" min="0.1" max="10" step="0.1" value="1">
-            </div>
-            <div class="control-group">
-                <label>雪花大小 <span id="val-size">1.0</span></label>
-                <input type="range" id="size" min="0.1" max="5" step="0.1" value="1">
-            </div>
-            <div class="control-group">
-                <label>风力 <span id="val-wind">0.5</span></label>
-                <input type="range" id="wind" min="-10" max="10" step="0.1" value="0.5">
-            </div>
-            <div class="control-group">
-                <label style="align-items: center;">
-                    <span>风向随机性</span>
-                    <input type="checkbox" id="windChaos" style="width: auto; margin: 0;">
-                </label>
-            </div>
-
-            <div class="instructions">
-                <ul>
-                    <li>🖱️ 拖拽旋转视角</li>
-                    <li>❄️ 晶体+颗粒混合</li>
-                    <li>📱 支持触摸操作</li>
-                </ul>
-            </div>
+        <div class="control-group">
+            <label>背景颜色</label>
+            <input type="color" id="bgColor" value="#87CEEB">
         </div>
+        <div class="control-group">
+            <label>背景深浅</label>
+            <input type="range" id="bgDarkness" min="0" max="1" step="0.05" value="0.2">
+        </div>
+
+        <hr class="panel-divider">
+
+        <div class="control-group">
+            <label>雪花密度 <span id="val-density">600</span></label>
+            <input type="range" id="density" min="100" max="4000" step="50" value="600">
+        </div>
+        <div class="control-group">
+            <label>下落速度 <span id="val-speed">1.0</span></label>
+            <input type="range" id="speed" min="0.1" max="10" step="0.1" value="1">
+        </div>
+        <div class="control-group">
+            <label>雪花大小 <span id="val-size">1.0</span></label>
+            <input type="range" id="size" min="0.1" max="5" step="0.1" value="1">
+        </div>
+        <div class="control-group">
+            <label>风力 <span id="val-wind">0.5</span></label>
+            <input type="range" id="wind" min="-10" max="10" step="0.1" value="0.5">
+        </div>
+        <div class="control-group">
+            <label style="align-items: center;">
+                <span>风向随机性</span>
+                <input type="checkbox" id="windChaos" style="width: auto; margin: 0;">
+            </label>
+        </div>
+
+        <div class="instructions">
+            <ul>
+                <li>🖱️ 任意拖拽旋转视角</li>
+                <li>📱 全屏触摸自由旋转</li>
+                <li>❄️ 晶体 + 颗粒混合雪花</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 底部按钮栏 -->
+    <div id="bottom-bar">
+        <!-- 返回主页 -->
+        <a href="../index.html" class="icon-btn" title="返回主页">
+            <svg viewBox="0 0 24 24">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+        </a>
+        <!-- 设置 -->
+        <button id="toggle-btn" class="icon-btn" title="设置">
+            <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+        </button>
     </div>
 
     <script>
@@ -243,10 +258,28 @@
         let width, height, particles = [], textures = [];
         let angleX = 0, angleY = 0, isDragging = false, lastX = 0, lastY = 0;
 
-        document.getElementById('toggle-btn').addEventListener('click', () => {
-            document.getElementById('ui-panel').classList.toggle('collapsed');
+        // ── 设置面板开关 ──
+        const panel = document.getElementById('ui-panel');
+        const toggleBtn = document.getElementById('toggle-btn');
+
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            panel.classList.toggle('collapsed');
         });
 
+        // 点击面板外任意区域收起面板（移动端友好）
+        document.addEventListener('click', (e) => {
+            if (!panel.classList.contains('collapsed') &&
+                !panel.contains(e.target) &&
+                e.target !== toggleBtn) {
+                panel.classList.add('collapsed');
+            }
+        });
+
+        // 面板内点击不冒泡
+        panel.addEventListener('click', (e) => e.stopPropagation());
+
+        // ── 雪花纹理生成 ──
         function createSnowflakeTexture() {
             const size = 64, c = document.createElement('canvas');
             c.width = c.height = size;
@@ -267,33 +300,14 @@
                 tCtx.moveTo(0, 0);
                 tCtx.lineTo(0, -branchLen);
                 tCtx.stroke();
-
                 const subBranches = Math.floor(Math.random() * 4) + 1;
                 for (let j = 0; j < subBranches; j++) {
                     const dist = (j + 1) / (subBranches + 1) * branchLen;
                     const subLen = (branchLen - dist) * 0.6 * (0.5 + Math.random() * 0.5);
-                    tCtx.beginPath();
-                    tCtx.moveTo(0, -dist);
-                    tCtx.lineTo(-subLen * 0.8, -dist - subLen * 0.5);
-                    tCtx.stroke();
-                    tCtx.beginPath();
-                    tCtx.moveTo(0, -dist);
-                    tCtx.lineTo(subLen * 0.8, -dist - subLen * 0.5);
-                    tCtx.stroke();
-                }
-                if (Math.random() > 0.7) {
-                    tCtx.beginPath();
-                    tCtx.arc(0, -branchLen * 0.5, branchLen * 0.1, 0, Math.PI * 2);
-                    tCtx.fillStyle = 'rgba(255,255,255,0.3)';
-                    tCtx.fill();
+                    tCtx.beginPath(); tCtx.moveTo(0, -dist); tCtx.lineTo(-subLen * 0.8, -dist - subLen * 0.5); tCtx.stroke();
+                    tCtx.beginPath(); tCtx.moveTo(0, -dist); tCtx.lineTo(subLen * 0.8, -dist - subLen * 0.5); tCtx.stroke();
                 }
                 tCtx.restore();
-            }
-            if (Math.random() > 0.5) {
-                tCtx.beginPath();
-                tCtx.arc(0, 0, radius * 0.2 * Math.random(), 0, Math.PI * 2);
-                tCtx.fillStyle = 'rgba(255,255,255,0.8)';
-                tCtx.fill();
             }
             return c;
         }
@@ -307,9 +321,7 @@
             gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.8)');
             gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
             tCtx.fillStyle = gradient;
-            tCtx.beginPath();
-            tCtx.arc(center, center, radius, 0, Math.PI * 2);
-            tCtx.fill();
+            tCtx.beginPath(); tCtx.arc(center, center, radius, 0, Math.PI * 2); tCtx.fill();
             return c;
         }
 
@@ -381,13 +393,15 @@
         }
         init();
 
-        // Mouse events
-        canvas.addEventListener('mousedown', (e) => {
+        // ── 鼠标拖拽旋转（绑定在 document，全屏有效）──
+        document.addEventListener('mousedown', (e) => {
+            // 点击到按钮/面板时不触发旋转
+            if (e.target.closest('#bottom-bar') || e.target.closest('#ui-panel')) return;
             isDragging = true;
             lastX = e.clientX;
             lastY = e.clientY;
         });
-        canvas.addEventListener('mousemove', (e) => {
+        document.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
             angleY += (e.clientX - lastX) * 0.005;
             angleX += (e.clientY - lastY) * 0.005;
@@ -395,37 +409,38 @@
             lastX = e.clientX;
             lastY = e.clientY;
         });
-        canvas.addEventListener('mouseup', () => { isDragging = false; });
+        document.addEventListener('mouseup', () => { isDragging = false; });
 
-        // Touch events
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
+        // ── 触摸旋转（全屏有效，绑在 document）──
+        document.addEventListener('touchstart', (e) => {
+            if (e.target.closest('#bottom-bar') || e.target.closest('#ui-panel')) return;
             const touch = e.touches[0];
             isDragging = true;
             lastX = touch.clientX;
             lastY = touch.clientY;
-        }, { passive: false });
+        }, { passive: true });
 
-        canvas.addEventListener('touchmove', (e) => {
+        document.addEventListener('touchmove', (e) => {
             if (!isDragging) return;
             e.preventDefault();
             const touch = e.touches[0];
-            angleY += (touch.clientX - lastX) * 0.01;
-            angleX += (touch.clientY - lastY) * 0.01;
+            angleY += (touch.clientX - lastX) * 0.008;
+            angleX += (touch.clientY - lastY) * 0.008;
             angleX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, angleX));
             lastX = touch.clientX;
             lastY = touch.clientY;
         }, { passive: false });
 
-        canvas.addEventListener('touchend', () => { isDragging = false; });
+        document.addEventListener('touchend', () => { isDragging = false; });
 
+        // ── 控制面板绑定 ──
         function updateConfig(id, key, isFloat = true) {
             const el = document.getElementById(id);
             const valSpan = document.getElementById('val-' + id);
             el.addEventListener('input', (e) => {
                 const val = isFloat ? parseFloat(e.target.value) : e.target.value;
                 CONFIG[key] = val;
-                if (valSpan) valSpan.textContent = val.toFixed(1);
+                if (valSpan) valSpan.textContent = isFloat ? val.toFixed(1) : val;
             });
         }
 
@@ -445,6 +460,7 @@
             CONFIG.windChaos = e.target.checked;
         });
 
+        // ── 渲染循环 ──
         function animate() {
             requestAnimationFrame(animate);
             ctx.fillStyle = CONFIG.bgColor;
@@ -454,10 +470,7 @@
             darkGrad.addColorStop(1, `rgba(0,0,0,${CONFIG.bgDarkness})`);
             ctx.fillStyle = darkGrad;
             ctx.fillRect(0, 0, width, height);
-            for (let p of particles) {
-                p.update();
-                p.draw();
-            }
+            for (let p of particles) { p.update(); p.draw(); }
         }
         animate();
     </script>
