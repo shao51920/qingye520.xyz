@@ -26,6 +26,14 @@ function getAvatarNodeHtml(avatarValue, seed, className) {
   return `<img class="${className}" src="${escapeAttr(avatarValue || '')}" alt="头像">`;
 }
 
+function getProfileAvatarValue(profile) {
+  if (!profile || typeof profile !== 'object') return '';
+  if (typeof profile.avatar_url === 'string' && profile.avatar_url) return profile.avatar_url;
+  if (typeof profile.avatar === 'string' && profile.avatar) return profile.avatar;
+  if (typeof profile.avatar_emoji === 'string' && profile.avatar_emoji) return `emoji:${profile.avatar_emoji}`;
+  return '';
+}
+
 function renderAvatarIntoElement(elementId, avatarValue, seed, className) {
   const el = document.getElementById(elementId);
   if (!el) return;
@@ -134,7 +142,7 @@ async function loadComments(pageType) {
   try {
     const { data: comments, error } = await client
       .from('comments')
-      .select('*, profiles(nickname, avatar_url)')
+      .select('*, profiles(*)')
       .eq('page_type', pageType)
       .order('created_at', { ascending: false })
       .limit(50);
@@ -170,7 +178,7 @@ function renderComment(c) {
     ? `<div class="comment-img-wrap"><img src="${escapeAttr(c.image_url)}" alt="评论图片" onclick="openCommentImage(this.src)" loading="lazy"></div>`
     : '';
   const deleteBtn = isOwner ? `<button class="comment-delete-btn" onclick="deleteComment('${c.id}', '${c.page_type}')">删除</button>` : '';
-  const avatarHtml = getAvatarNodeHtml(profile.avatar_url, c.user_id || 'guest', 'comment-item-avatar');
+  const avatarHtml = getAvatarNodeHtml(getProfileAvatarValue(profile), c.user_id || 'guest', 'comment-item-avatar');
 
   return `
     <div class="comment-item" id="comment-${c.id}">

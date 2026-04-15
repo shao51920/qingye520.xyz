@@ -338,6 +338,14 @@
       return `<span class="avatar-dot">${pickEmoji(seed)}</span>`;
     }
 
+    function getAdminAvatarValue(profile) {
+      if (!profile || typeof profile !== 'object') return '';
+      if (typeof profile.avatar_url === 'string' && profile.avatar_url) return profile.avatar_url;
+      if (typeof profile.avatar === 'string' && profile.avatar) return profile.avatar;
+      if (typeof profile.avatar_emoji === 'string' && profile.avatar_emoji) return `emoji:${profile.avatar_emoji}`;
+      return '';
+    }
+
     function hasAdminMetadata(user) {
       return Boolean(
         user?.app_metadata?.role === 'admin' ||
@@ -352,8 +360,7 @@
       // 兜底：确保 profile 存在，避免历史账号因缺 profile 导致“看起来无法登录”
       await db.from('profiles').upsert({
         id: user.id,
-        nickname: user.user_metadata?.nickname || '管理员',
-        avatar_url: user.user_metadata?.avatar_url || ('emoji:' + pickEmoji(user.id))
+        nickname: user.user_metadata?.nickname || '管理员'
       });
 
       const { data: profile } = await db
@@ -457,7 +464,7 @@
     async function loadComments() {
       const { data: comments } = await db
         .from('comments')
-        .select('*, profiles(nickname, avatar_url)')
+        .select('*, profiles(*)')
         .order('created_at', { ascending: false })
         .limit(300);
 
@@ -494,7 +501,7 @@
           <tr id="row-${c.id}" style="${c.is_hidden ? 'opacity:0.4' : ''}">
             <td>
               <span class="cell-user">
-                ${renderAdminAvatar(c.profiles?.avatar_url, c.user_id)}
+                ${renderAdminAvatar(getAdminAvatarValue(c.profiles), c.user_id)}
                 <span>${escapeH(c.profiles?.nickname || '未知')}</span>
               </span>
             </td>
@@ -554,7 +561,7 @@
         <thead><tr><th>头像</th><th>昵称</th><th>角色</th><th>注册时间</th><th>操作</th></tr></thead>
         <tbody>${rows.map(u => `
           <tr>
-            <td>${renderAdminAvatar(u.avatar_url, u.id)}</td>
+            <td>${renderAdminAvatar(getAdminAvatarValue(u), u.id)}</td>
             <td>${escapeH(u.nickname || '')}</td>
             <td>${u.is_admin ? '<span class="badge">👑 管理员</span>' : '<span class="badge">普通用户</span>'}</td>
             <td>${new Date(u.created_at).toLocaleDateString('zh-CN')}</td>

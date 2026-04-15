@@ -19,6 +19,13 @@ let profileAvatarDraft = {
   previewUrl: ''
 };
 
+const PROFILE_AVATAR_CANDIDATE_FIELDS = ['avatar_url', 'avatar', 'avatar_emoji'];
+let resolvedProfileAvatarField = null;
+let profileAvatarFieldResolved = false;
+let pendingOtpEmail = '';
+let otpCooldownTimer = null;
+let otpCooldownSeconds = 0;
+
 function getAuthClient() {
   if (typeof supabase !== 'undefined' && supabase?.auth) return supabase;
   if (window.supabaseClient?.auth) return window.supabaseClient;
@@ -101,6 +108,7 @@ window.AvatarKit = {
 
 function normalizeAuthErrorMessage(msg) {
   if (!msg) return '操作失败';
+  const lowerMsg = String(msg).toLowerCase();
   if (msg.includes('Cannot read properties of undefined') && msg.includes('signUp')) {
     return '认证模块初始化失败，请刷新页面后重试';
   }
@@ -117,14 +125,98 @@ function normalizeAuthErrorMessage(msg) {
   if (msg.includes('Email not confirmed')) return '邮箱未验证，请先去邮箱完成验证';
   if (msg.includes('Signups not allowed')) return '当前站点暂未开放注册，请联系管理员';
   if (msg.includes('Invalid API key')) return '站点认证配置异常（Supabase Key 无效）';
+  if (lowerMsg.includes('invalid') && lowerMsg.includes('token')) return '验证码无效，请检查后重新输入';
+  if (lowerMsg.includes('expired') && lowerMsg.includes('token')) return '验证码已过期，请重新获取';
+  if (lowerMsg.includes('otp_expired')) return '验证码已过期，请重新获取';
+  if (lowerMsg.includes('otp_disabled')) return '当前未开启邮箱验证码登录，请检查 Supabase 配置';
   if (msg.includes('already registered')) return '该邮箱已注册，请直接登录';
   if (msg.includes('valid email')) return '请输入有效邮箱';
   return msg;
 }
 
-function isSignupTimeoutError(message) {
-  const msg = String(message || '');
-  return msg.includes('upstream request timeout') || msg.includes('Gateway Timeout') || msg.includes('504');
+function isMissingProfilesColumnError(error) {
+  const msg = String(error?.message || '');
+  return msg.includes("column of 'profiles' in the schema cache");
+}
+
+function getAvatarFromProfileRecord(record, seed) {
+  if (!record || typeof record !== 'object') return normalizeAvatarValue('', seed);
+  if (typeof record.avatar_url === 'string' && record.avatar_url) return normalizeAvatarValue(record.avatar_url, seed);
+  if (typeof record.avatar === 'string' && record.avatar) return normalizeAvatarValue(record.avatar, seed);
+  if (typeof record.avatar_emoji === 'string' && record.avatar_emoji) return normalizeAvatarValue(`emoji:${record.avatar_emoji}`, seed);
+  return normalizeAvatarValue('', seed);
+}
+
+function getAvatarStorageValue(field, normalizedAvatarValue, seed) {
+  if (field === 'avatar_emoji') return getEmojiFromAvatarValue(normalizedAvatarValue, seed);
+  return normalizedAvatarValue;
+}
+
+function inferAvatarFieldFromProfile(record) {
+  if (!record || typeof record !== 'object') return null;
+  if (Object.prototype.hasOwnProperty.call(record, 'avatar_url')) return 'avatar_url';
+  if (Object.prototype.hasOwnProperty.call(record, 'avatar')) return 'avatar';
+  if (Object.prototype.hasOwnProperty.call(record, 'avatar_emoji')) return 'avatar_emoji';
+  return null;
+}
+
+async function resolveProfileAvatarField(client) {
+  if (profileAvatarFieldResolved) return resolvedProfileAvatarField;
+
+  for (const field of PROFILE_AVATAR_CANDIDATE_FIELDS) {
+    const { error } = await client.from('profiles').select(field).limit(1);
+    if (!error) {
+      resolvedProfileAvatarField = field;
+      profileAvatarFieldResolved = true;
+      return resolvedProfileAvatarField;
+    }
+    if (!isMissingProfilesColumnError(error)) {
+      break;
+    }
+  }
+
+  resolvedProfileAvatarField = null;
+  profileAvatarFieldResolved = true;
+  return null;
+}
+
+async function upsertProfileCompat(client, basePayload, avatarValue, seed) {
+  const field = await resolveProfileAvatarField(client);
+  const payload = { ...basePayload };
+  if (field) payload[field] = getAvatarStorageValue(field, avatarValue, seed);
+
+  const { error } = await client.from('profiles').upsert(payload);
+  if (!error) return;
+
+  if (field && isMissingProfilesColumnError(error)) {
+    // schema cache may be stale or field differs; retry without avatar field
+    profileAvatarFieldResolved = false;
+    resolvedProfileAvatarField = null;
+    const retryPayload = { ...basePayload };
+    const { error: retryError } = await client.from('profiles').upsert(retryPayload);
+    if (retryError) throw retryError;
+    return;
+  }
+  throw error;
+}
+
+async function updateProfileCompat(client, userId, nickname, avatarValue, seed) {
+  const field = await resolveProfileAvatarField(client);
+  const payload = { nickname };
+  if (field) payload[field] = getAvatarStorageValue(field, avatarValue, seed);
+
+  const { error } = await client.from('profiles').update(payload).eq('id', userId);
+  if (!error) return;
+
+  if (field && isMissingProfilesColumnError(error)) {
+    profileAvatarFieldResolved = false;
+    resolvedProfileAvatarField = null;
+    const retryPayload = { nickname };
+    const { error: retryError } = await client.from('profiles').update(retryPayload).eq('id', userId);
+    if (retryError) throw retryError;
+    return;
+  }
+  throw error;
 }
 
 function escapeAttr(text) {
@@ -174,20 +266,38 @@ async function loadProfile() {
     .maybeSingle();
 
   if (data) {
-    const normalizedAvatar = normalizeAvatarValue(data.avatar_url, currentUser.id);
+    const inferredField = inferAvatarFieldFromProfile(data);
+    if (inferredField) {
+      resolvedProfileAvatarField = inferredField;
+      profileAvatarFieldResolved = true;
+    }
+    const normalizedAvatar = getAvatarFromProfileRecord(data, currentUser.id);
     currentProfile = { ...data, avatar_url: normalizedAvatar };
-    if (normalizedAvatar !== data.avatar_url) {
-      await client.from('profiles').update({ avatar_url: normalizedAvatar }).eq('id', currentUser.id);
+    const originalAvatar = getAvatarFromProfileRecord({
+      avatar_url: data.avatar_url,
+      avatar: data.avatar,
+      avatar_emoji: data.avatar_emoji
+    }, currentUser.id);
+    if (normalizedAvatar !== originalAvatar) {
+      try {
+        await updateProfileCompat(client, currentUser.id, currentProfile.nickname || '匿名觉者', normalizedAvatar, currentUser.id);
+      } catch (_e) {
+        // ignore avatar normalization failure to avoid blocking auth flow
+      }
     }
     return;
   }
 
   const avatarEmoji = currentUser.user_metadata?.avatar_emoji || pickAvatarEmoji(currentUser.id);
-  await client.from('profiles').upsert({
-    id: currentUser.id,
-    nickname: currentUser.user_metadata?.nickname || '匿名觉者',
-    avatar_url: `emoji:${avatarEmoji}`
-  });
+  const normalizedAvatar = normalizeAvatarValue(`emoji:${avatarEmoji}`, currentUser.id);
+  try {
+    await upsertProfileCompat(client, {
+      id: currentUser.id,
+      nickname: currentUser.user_metadata?.nickname || '匿名觉者'
+    }, normalizedAvatar, currentUser.id);
+  } catch (_e) {
+    // if profiles write fails, still keep auth usable with metadata fallback
+  }
 
   const { data: fallbackProfile } = await client
     .from('profiles')
@@ -195,9 +305,15 @@ async function loadProfile() {
     .eq('id', currentUser.id)
     .maybeSingle();
 
-  currentProfile = fallbackProfile || {
+  if (fallbackProfile) {
+    const fallbackAvatar = getAvatarFromProfileRecord(fallbackProfile, currentUser.id);
+    currentProfile = { ...fallbackProfile, avatar_url: fallbackAvatar };
+    return;
+  }
+
+  currentProfile = {
     nickname: currentUser.user_metadata?.nickname || currentUser.email || '用户',
-    avatar_url: `emoji:${avatarEmoji}`
+    avatar_url: normalizedAvatar
   };
 }
 
@@ -248,6 +364,7 @@ document.addEventListener('click', (e) => {
 function openAuthModal() {
   const existing = document.getElementById('auth-modal');
   if (existing) existing.remove();
+  pendingOtpEmail = '';
 
   const modal = document.createElement('div');
   modal.id = 'auth-modal';
@@ -256,33 +373,41 @@ function openAuthModal() {
     <div class="auth-modal-backdrop" onclick="closeAuthModal()"></div>
     <div class="auth-modal-content">
       <button class="auth-modal-close" onclick="closeAuthModal()">✕</button>
-      <p class="auth-modal-sub auth-modal-sub-main">登录后可获得更多权限</p>
-
-      <div class="auth-tabs">
-        <button class="auth-tab active" onclick="switchAuthTab('login', this)">登录</button>
-        <button class="auth-tab" onclick="switchAuthTab('register', this)">注册</button>
-      </div>
+      <h3 class="auth-modal-title">邮箱验证码登录</h3>
+      <p class="auth-modal-sub auth-modal-sub-main">输入邮箱获取验证码，验证后自动登录</p>
 
       <form id="auth-form" onsubmit="handleAuthSubmit(event)">
         <div class="auth-field">
           <label>邮箱</label>
           <input type="email" id="auth-email" placeholder="your@email.com" required autocomplete="email">
         </div>
-        <div class="auth-field">
-          <label>密码</label>
-          <input type="password" id="auth-password" placeholder="至少6位" required minlength="6" autocomplete="current-password">
+
+        <div class="auth-otp-row">
+          <div class="auth-field auth-otp-code-field">
+            <label>验证码</label>
+            <input type="text" id="auth-code" placeholder="输入邮箱验证码" required autocomplete="one-time-code" maxlength="8">
+          </div>
+          <button type="button" class="auth-otp-send-btn" id="auth-send-btn" onclick="sendEmailOtpCode()">发送验证码</button>
         </div>
-        <div class="auth-field auth-nickname-field" style="display:none">
-          <label>昵称</label>
-          <input type="text" id="auth-nickname" placeholder="给自己取个名字" autocomplete="nickname">
-        </div>
+
+        <p class="auth-hint" id="auth-hint">首次使用会自动创建账号</p>
         <p class="auth-error" id="auth-error"></p>
-        <button type="submit" class="auth-submit-btn" id="auth-submit-btn">登录</button>
+        <button type="submit" class="auth-submit-btn" id="auth-submit-btn" disabled>验证码登录</button>
       </form>
     </div>
   `;
   document.body.appendChild(modal);
   requestAnimationFrame(() => modal.classList.add('show'));
+
+  const codeInput = document.getElementById('auth-code');
+  const emailInput = document.getElementById('auth-email');
+  if (codeInput) codeInput.addEventListener('input', updateOtpSubmitState);
+  if (emailInput) emailInput.addEventListener('input', () => {
+    const hintEl = document.getElementById('auth-hint');
+    if (hintEl && pendingOtpEmail && emailInput.value.trim() !== pendingOtpEmail) {
+      hintEl.textContent = '邮箱已更改，请重新发送验证码';
+    }
+  });
 }
 
 function closeAuthModal() {
@@ -291,43 +416,106 @@ function closeAuthModal() {
     modal.classList.remove('show');
     setTimeout(() => modal.remove(), 300);
   }
-}
-
-let authMode = 'login';
-
-function switchAuthTab(mode, btn) {
-  authMode = mode;
-  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-  btn.classList.add('active');
-
-  const nicknameField = document.querySelector('.auth-nickname-field');
-  const submitBtn = document.getElementById('auth-submit-btn');
-  const passwordInput = document.getElementById('auth-password');
-
-  if (mode === 'register') {
-    nicknameField.style.display = 'block';
-    submitBtn.textContent = '注册';
-    if (passwordInput) passwordInput.setAttribute('autocomplete', 'new-password');
-  } else {
-    nicknameField.style.display = 'none';
-    submitBtn.textContent = '登录';
-    if (passwordInput) passwordInput.setAttribute('autocomplete', 'current-password');
+  pendingOtpEmail = '';
+  if (otpCooldownTimer) {
+    clearInterval(otpCooldownTimer);
+    otpCooldownTimer = null;
   }
-  document.getElementById('auth-error').textContent = '';
+  otpCooldownSeconds = 0;
 }
 
-/* ── 提交登录/注册 ── */
+function updateOtpSubmitState() {
+  const submitBtn = document.getElementById('auth-submit-btn');
+  const codeInput = document.getElementById('auth-code');
+  if (!submitBtn || !codeInput) return;
+  submitBtn.disabled = !codeInput.value.trim();
+}
+
+function setAuthHint(message) {
+  const hintEl = document.getElementById('auth-hint');
+  if (hintEl) hintEl.textContent = message;
+}
+
+function setSendButtonLabel() {
+  const sendBtn = document.getElementById('auth-send-btn');
+  if (!sendBtn) return;
+  sendBtn.textContent = otpCooldownSeconds > 0 ? `${otpCooldownSeconds}s后重发` : '发送验证码';
+  sendBtn.disabled = otpCooldownSeconds > 0;
+}
+
+function startOtpCooldown(seconds) {
+  otpCooldownSeconds = seconds;
+  setSendButtonLabel();
+  if (otpCooldownTimer) clearInterval(otpCooldownTimer);
+  otpCooldownTimer = setInterval(() => {
+    otpCooldownSeconds -= 1;
+    if (otpCooldownSeconds <= 0) {
+      otpCooldownSeconds = 0;
+      clearInterval(otpCooldownTimer);
+      otpCooldownTimer = null;
+    }
+    setSendButtonLabel();
+  }, 1000);
+}
+
+async function sendEmailOtpCode() {
+  const client = getAuthClient();
+  const emailInput = document.getElementById('auth-email');
+  const errorEl = document.getElementById('auth-error');
+  const sendBtn = document.getElementById('auth-send-btn');
+  const codeInput = document.getElementById('auth-code');
+  if (!client?.auth || !emailInput || !sendBtn || !errorEl) return;
+
+  const email = emailInput.value.trim().toLowerCase();
+  if (!email) {
+    errorEl.textContent = '请输入邮箱';
+    return;
+  }
+
+  errorEl.textContent = '';
+  sendBtn.disabled = true;
+  sendBtn.textContent = '发送中...';
+  setAuthHint('正在发送验证码，请稍候');
+
+  try {
+    const { error } = await client.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true }
+    });
+    if (error) throw error;
+
+    pendingOtpEmail = email;
+    setAuthHint(`验证码已发送到 ${email}，请输入验证码完成登录`);
+    startOtpCooldown(60);
+    if (codeInput) codeInput.focus();
+    updateOtpSubmitState();
+  } catch (err) {
+    errorEl.textContent = normalizeAuthErrorMessage(err?.message || '验证码发送失败');
+    sendBtn.disabled = false;
+    sendBtn.textContent = '发送验证码';
+    setAuthHint('首次使用会自动创建账号');
+  }
+}
+
+/* ── 提交验证码登录 ── */
 async function handleAuthSubmit(e) {
   e.preventDefault();
   const client = getAuthClient();
-
-  const email = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
+  const emailInput = document.getElementById('auth-email');
+  const codeInput = document.getElementById('auth-code');
   const errorEl = document.getElementById('auth-error');
   const submitBtn = document.getElementById('auth-submit-btn');
+  if (!emailInput || !codeInput || !submitBtn || !errorEl) return;
+
+  const email = (pendingOtpEmail || emailInput.value.trim()).toLowerCase();
+  const token = codeInput.value.trim();
+  if (!email || !token) {
+    errorEl.textContent = '请输入邮箱和验证码';
+    return;
+  }
 
   submitBtn.disabled = true;
-  submitBtn.textContent = '处理中...';
+  submitBtn.textContent = '验证中...';
   errorEl.textContent = '';
 
   try {
@@ -335,60 +523,48 @@ async function handleAuthSubmit(e) {
       throw new Error('认证模块初始化失败，请刷新页面后重试');
     }
 
-    if (authMode === 'register') {
-      const nickname = document.getElementById('auth-nickname').value.trim() || '匿名觉者';
-      const avatarEmoji = pickAvatarEmoji(email || nickname || Date.now());
-      let data = null;
+    const { data, error } = await client.auth.verifyOtp({
+      email,
+      token,
+      type: 'email'
+    });
+    if (error) throw error;
+
+    let authedUser = data?.user || data?.session?.user || null;
+    if (!authedUser) {
+      const { data: userData } = await client.auth.getUser();
+      authedUser = userData?.user || null;
+    }
+
+    if (authedUser?.id) {
+      currentUser = authedUser;
+      const avatarEmoji = authedUser.user_metadata?.avatar_emoji || pickAvatarEmoji(authedUser.id);
+      const normalizedAvatar = normalizeAvatarValue(`emoji:${avatarEmoji}`, authedUser.id);
+      const nickname = authedUser.user_metadata?.nickname || authedUser.email || '匿名觉者';
 
       try {
-        const signupResult = await client.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { nickname, avatar_emoji: avatarEmoji }
-          }
+        await upsertProfileCompat(client, { id: authedUser.id, nickname }, normalizedAvatar, authedUser.id);
+      } catch (_e) {
+        // ignore profile write failure and continue login
+      }
+
+      try {
+        await client.auth.updateUser({
+          data: { nickname, avatar_emoji: getEmojiFromAvatarValue(normalizedAvatar, authedUser.id), avatar_url: normalizedAvatar }
         });
-        data = signupResult.data;
-        if (signupResult.error) throw signupResult.error;
-      } catch (signupErr) {
-        if (!isSignupTimeoutError(signupErr?.message)) throw signupErr;
-
-        // Timeout may happen after upstream accepted the signup request.
-        const { error: signInError } = await client.auth.signInWithPassword({ email, password });
-        if (!signInError) {
-          closeAuthModal();
-          return;
-        }
-        if (String(signInError.message || '').includes('Email not confirmed')) {
-          errorEl.textContent = '注册请求可能已成功，但邮件服务超时。请检查邮箱验证邮件后再登录。';
-          return;
-        }
-        throw signupErr;
+      } catch (_e) {
+        // metadata update failure should not block login
       }
 
-      if (data.user && data.session) {
-        await client.from('profiles').upsert({
-          id: data.user.id,
-          nickname,
-          avatar_url: `emoji:${avatarEmoji}`
-        });
-      }
-
-      if (!data.session) {
-        errorEl.textContent = '注册成功，请先去邮箱完成验证，再返回登录。';
-        return;
-      }
-      closeAuthModal();
-    } else {
-      const { error } = await client.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      closeAuthModal();
+      await loadProfile();
     }
+
+    closeAuthModal();
   } catch (err) {
     errorEl.textContent = normalizeAuthErrorMessage(err?.message || '操作失败');
   } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = authMode === 'register' ? '注册' : '登录';
+    updateOtpSubmitState();
+    submitBtn.textContent = '验证码登录';
   }
 }
 
@@ -530,7 +706,7 @@ async function saveProfileChanges() {
   errorEl.textContent = '';
 
   try {
-    let avatarValue = `emoji:${profileAvatarDraft.emoji || pickAvatarEmoji(currentUser.id)}`;
+    let avatarValue = normalizeAvatarValue(`emoji:${profileAvatarDraft.emoji || pickAvatarEmoji(currentUser.id)}`, currentUser.id);
 
     if (profileAvatarDraft.file) {
       const ext = profileAvatarDraft.file.name.split('.').pop() || 'png';
@@ -544,11 +720,19 @@ async function saveProfileChanges() {
       avatarValue = publicData.publicUrl;
     }
 
-    const { error } = await client
-      .from('profiles')
-      .update({ nickname, avatar_url: avatarValue })
-      .eq('id', currentUser.id);
-    if (error) throw error;
+    await updateProfileCompat(client, currentUser.id, nickname, avatarValue, currentUser.id);
+
+    try {
+      await client.auth.updateUser({
+        data: {
+          nickname,
+          avatar_url: avatarValue,
+          avatar_emoji: getEmojiFromAvatarValue(avatarValue, currentUser.id)
+        }
+      });
+    } catch (_e) {
+      // metadata sync failure does not block local profile update
+    }
 
     currentProfile = { ...(currentProfile || {}), nickname, avatar_url: avatarValue };
     renderAuthUI();

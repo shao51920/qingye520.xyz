@@ -203,34 +203,6 @@
   margin-top: 8px;
 }
 
-/* ── Tabs ── */
-.auth-tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 22px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  padding: 4px;
-}
-
-.auth-tab {
-  flex: 1;
-  padding: 8px;
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.25s;
-}
-
-.auth-tab.active {
-  background: rgba(167, 139, 250, 0.25);
-  color: white;
-}
-
 /* ── Form ── */
 .auth-field {
   margin-bottom: 16px;
@@ -269,6 +241,47 @@
   font-size: 0.82rem;
   min-height: 20px;
   margin-bottom: 8px;
+}
+
+.auth-hint {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.8rem;
+  margin: -4px 0 8px;
+}
+
+.auth-otp-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.auth-otp-code-field {
+  margin-bottom: 0;
+}
+
+.auth-otp-send-btn {
+  height: 42px;
+  border-radius: 10px;
+  padding: 0 14px;
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  background: rgba(167, 139, 250, 0.15);
+  color: #e7ddff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.auth-otp-send-btn:hover:not(:disabled) {
+  border-color: rgba(167, 139, 250, 0.8);
+  background: rgba(167, 139, 250, 0.24);
+  transform: translateY(-1px);
+}
+
+.auth-otp-send-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .auth-submit-btn {
