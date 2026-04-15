@@ -57,6 +57,15 @@
   height: 30px;
   border-radius: 50%;
   background: rgba(167, 139, 250, 0.15);
+  object-fit: cover;
+}
+
+.auth-avatar-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .auth-name {
@@ -285,4 +294,84 @@
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+/* ── Profile Editor ── */
+.profile-edit-content {
+  max-width: 420px;
+}
+
+.profile-edit-title {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 1.05rem;
+  margin-bottom: 14px;
+}
+
+.profile-avatar-preview {
+  width: 82px;
+  height: 82px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.profile-avatar-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar-preview-emoji {
+  font-size: 42px;
+  line-height: 1;
+}
+
+.profile-emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+
+.profile-emoji-option {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.profile-emoji-option:hover {
+  border-color: rgba(167, 139, 250, 0.6);
+  transform: translateY(-1px);
+}
+
+.profile-emoji-option.active {
+  border-color: rgba(167, 139, 250, 0.8);
+  background: rgba(167, 139, 250, 0.18);
+}
+
+.profile-upload-btn {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.24);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.83rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.profile-upload-btn input {
+  display: none;
 }

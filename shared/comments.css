@@ -72,6 +72,22 @@
   height: 28px;
   border-radius: 50%;
   background: rgba(167, 139, 250, 0.15);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.comment-avatar-emoji,
+.comment-item-avatar-emoji {
+  font-size: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.comment-item-avatar-emoji {
+  font-size: 22px;
 }
 
 #comment-username {
@@ -238,6 +254,11 @@
   border-radius: 50%;
   flex-shrink: 0;
   background: rgba(167, 139, 250, 0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  object-fit: cover;
 }
 
 .comment-item-body {

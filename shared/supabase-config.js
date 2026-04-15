@@ -11,4 +11,13 @@ const SUPABASE_URL = 'https://xcwdgwvtgbqcsslbgtpy.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_g5USxyN0qcqv9peaZE_irQ_B3QIPV_H';
 
 // 初始化 Supabase 客户端 (使用 CDN 引入的全局变量)
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+  console.error('Supabase SDK 未加载：请检查 @supabase/supabase-js CDN 是否可用');
+  window.supabaseClient = null;
+} else {
+  window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+// 兼容旧代码：保留全局 supabase/db 访问方式
+const supabase = window.supabaseClient;
+window.db = window.supabaseClient;

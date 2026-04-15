@@ -2,10 +2,35 @@
     Comments Module — 评论区
     ==============================
     使用方法：在结果页 DOM 中放一个 <div id="comments-section" data-page="soullab"></div>
-    然后本模块会自动渲染评论区。
 */
 
 let commentsLoaded = false;
+let selectedImageFile = null;
+
+function getCommentsClient() {
+  if (typeof supabase !== 'undefined' && supabase) return supabase;
+  if (window.supabaseClient) return window.supabaseClient;
+  if (window.db) return window.db;
+  return null;
+}
+
+function getAvatarNodeHtml(avatarValue, seed, className) {
+  if (window.AvatarKit && typeof window.AvatarKit.normalizeAvatarValue === 'function') {
+    const normalized = window.AvatarKit.normalizeAvatarValue(avatarValue, seed);
+    if (typeof normalized === 'string' && normalized.startsWith('emoji:')) {
+      const emoji = window.AvatarKit.getEmojiFromAvatarValue(normalized, seed);
+      return `<span class="${className} ${className}-emoji">${emoji}</span>`;
+    }
+    return `<img class="${className}" src="${escapeAttr(normalized)}" alt="头像">`;
+  }
+  return `<img class="${className}" src="${escapeAttr(avatarValue || '')}" alt="头像">`;
+}
+
+function renderAvatarIntoElement(elementId, avatarValue, seed, className) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.outerHTML = getAvatarNodeHtml(avatarValue, seed, className).replace(`class="${className}"`, `id="${elementId}" class="${className}"`);
+}
 
 /* ── 初始化评论区 ── */
 function initComments() {
@@ -16,7 +41,8 @@ function initComments() {
 
   container.innerHTML = `
     <div class="comments-wrapper">
-      <div class=留下一盏你的心灯</h3>
+      <div class="comments-header">
+        <h3>留下一盏你的心灯</h3>
         <span class="comments-count" id="comments-count">加载中...</span>
       </div>
 
@@ -27,7 +53,7 @@ function initComments() {
         </div>
         <div class="comment-input-box" id="comment-input-box" style="display:none">
           <div class="comment-user-info">
-            <img class="comment-avatar" id="comment-avatar" src="" alt="">
+            <span class="comment-avatar comment-avatar-emoji" id="comment-avatar">🙂</span>
             <span id="comment-username">用户</span>
           </div>
           <textarea id="comment-text" placeholder="写下你的想法…" maxlength="500" rows="3"></textarea>
@@ -56,11 +82,11 @@ function initComments() {
     </div>
   `;
 
-  // 字数计数
   const textarea = document.getElementById('comment-text');
   if (textarea) {
     textarea.addEventListener('input', () => {
-      document.getElementById('comment-char').textContent = textarea.value.length;
+      const counter = document.getElementById('comment-char');
+      if (counter) counter.textContent = textarea.value.length;
     });
   }
 
@@ -74,13 +100,14 @@ function updateCommentInputState() {
   const inputBox = document.getElementById('comment-input-box');
   if (!loginHint || !inputBox) return;
 
-  if (currentUser && currentProfile) {
+  if (currentUser) {
     loginHint.style.display = 'none';
     inputBox.style.display = 'block';
-    const avatar = document.getElementById('comment-avatar');
     const username = document.getElementById('comment-username');
-    if (avatar) avatar.src = currentProfile.avatar_url || 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=' + currentUser.id;
-    if (username) username.textContent = currentProfile.nickname || '用户';
+    if (username) {
+      username.textContent = currentProfile?.nickname || currentUser.user_metadata?.nickname || currentUser.email || '用户';
+    }
+    renderAvatarIntoElement('comment-avatar', currentProfile?.avatar_url, currentUser.id, 'comment-avatar');
   } else {
     loginHint.style.display = 'flex';
     inputBox.style.display = 'none';
@@ -99,11 +126,13 @@ if (origRenderAuthUI) {
 
 /* ── 加载评论 ── */
 async function loadComments(pageType) {
+  const client = getCommentsClient();
   const listEl = document.getElementById('comments-list');
   const countEl = document.getElementById('comments-count');
+  if (!client || !listEl) return;
 
   try {
-    const { data: comments, error } = await supabase
+    const { data: comments, error } = await client
       .from('comments')
       .select('*, profiles(nickname, avatar_url)')
       .eq('page_type', pageType)
@@ -111,7 +140,6 @@ async function loadComments(pageType) {
       .limit(50);
 
     if (error) throw error;
-
     if (countEl) countEl.textContent = `${comments.length} 条`;
 
     if (!comments || comments.length === 0) {
@@ -130,26 +158,30 @@ async function loadComments(pageType) {
 /* ── 渲染单条评论 ── */
 function renderComment(c) {
   const profile = c.profiles || {};
-  const avatar = profile.avatar_url || 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=default';
   const name = profile.nickname || '匿名';
   const time = new Date(c.created_at).toLocaleString('zh-CN', {
-    month: 'numeric', day: 'numeric',
-    hour: '2-digit', minute: '2-digit'
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   });
   const isOwner = currentUser && c.user_id === currentUser.id;
-  const imageHtml = c.image_url ? `<div class="comment-img-wrap"><img src="${c.image_url}" alt="评论图片" onclick="openCommentImage(this.src)" loading="lazy"></div>` : '';
+  const imageHtml = c.image_url
+    ? `<div class="comment-img-wrap"><img src="${escapeAttr(c.image_url)}" alt="评论图片" onclick="openCommentImage(this.src)" loading="lazy"></div>`
+    : '';
   const deleteBtn = isOwner ? `<button class="comment-delete-btn" onclick="deleteComment('${c.id}', '${c.page_type}')">删除</button>` : '';
+  const avatarHtml = getAvatarNodeHtml(profile.avatar_url, c.user_id || 'guest', 'comment-item-avatar');
 
   return `
     <div class="comment-item" id="comment-${c.id}">
-      <img class="comment-item-avatar" src="${avatar}" alt="">
+      ${avatarHtml}
       <div class="comment-item-body">
         <div class="comment-item-header">
           <span class="comment-item-name">${escapeHtml(name)}</span>
           <span class="comment-item-time">${time}</span>
           ${deleteBtn}
         </div>
-        <p class="comment-item-text">${escapeHtml(c.content)}</p>
+        <p class="comment-item-text">${escapeHtml(c.content || '')}</p>
         ${imageHtml}
       </div>
     </div>
@@ -158,18 +190,20 @@ function renderComment(c) {
 
 /* ── 提交评论 ── */
 async function submitComment(pageType) {
+  const client = getCommentsClient();
+  if (!client) return;
+
   if (!currentUser) {
     openAuthModal();
     return;
   }
 
   const textEl = document.getElementById('comment-text');
-  const content = textEl.value.trim();
   const submitBtn = document.getElementById('comment-submit-btn');
+  if (!textEl || !submitBtn) return;
 
-  if (!content && !selectedImageFile) {
-    return;
-  }
+  const content = textEl.value.trim();
+  if (!content && !selectedImageFile) return;
 
   submitBtn.disabled = true;
   submitBtn.textContent = '发布中...';
@@ -177,38 +211,31 @@ async function submitComment(pageType) {
   try {
     let imageUrl = null;
 
-    // 上传图片
     if (selectedImageFile) {
       const fileExt = selectedImageFile.name.split('.').pop();
       const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await client.storage
         .from('comment-images')
         .upload(fileName, selectedImageFile, { cacheControl: '3600', upsert: false });
-
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from('comment-images')
-        .getPublicUrl(fileName);
+      const { data: urlData } = client.storage.from('comment-images').getPublicUrl(fileName);
       imageUrl = urlData.publicUrl;
     }
 
-    // 插入评论
-    const { error } = await supabase.from('comments').insert({
+    const { error } = await client.from('comments').insert({
       user_id: currentUser.id,
       page_type: pageType,
       content: content || '',
       image_url: imageUrl
     });
-
     if (error) throw error;
 
-    // 清空输入
     textEl.value = '';
-    document.getElementById('comment-char').textContent = '0';
+    const counter = document.getElementById('comment-char');
+    if (counter) counter.textContent = '0';
     removeImagePreview();
 
-    // 重新加载评论
     await loadComments(pageType);
   } catch (err) {
     console.error('发布失败:', err);
@@ -221,24 +248,24 @@ async function submitComment(pageType) {
 
 /* ── 删除评论 ── */
 async function deleteComment(commentId, pageType) {
+  const client = getCommentsClient();
+  if (!client) return;
+
   if (!confirm('确定删除这条评论？')) return;
   try {
-    const { error } = await supabase.from('comments').delete().eq('id', commentId);
+    const { error } = await client.from('comments').delete().eq('id', commentId);
     if (error) throw error;
     await loadComments(pageType);
-  } catch (err) {
+  } catch (_err) {
     alert('删除失败');
   }
 }
 
 /* ── 图片预览 ── */
-let selectedImageFile = null;
-
 function handleImagePreview(input) {
-  const file = input.files[0];
+  const file = input.files && input.files[0];
   if (!file) return;
 
-  // 限制 5MB
   if (file.size > 5 * 1024 * 1024) {
     alert('图片大小不能超过 5MB');
     input.value = '';
@@ -248,17 +275,23 @@ function handleImagePreview(input) {
   selectedImageFile = file;
   const reader = new FileReader();
   reader.onload = (e) => {
-    document.getElementById('comment-preview-img').src = e.target.result;
-    document.getElementById('comment-image-preview').style.display = 'block';
+    const img = document.getElementById('comment-preview-img');
+    const preview = document.getElementById('comment-image-preview');
+    if (!img || !preview) return;
+    img.src = e.target.result;
+    preview.style.display = 'block';
   };
   reader.readAsDataURL(file);
 }
 
 function removeImagePreview() {
   selectedImageFile = null;
-  document.getElementById('comment-image-preview').style.display = 'none';
-  document.getElementById('comment-preview-img').src = '';
-  document.getElementById('comment-image-input').value = '';
+  const preview = document.getElementById('comment-image-preview');
+  const previewImg = document.getElementById('comment-preview-img');
+  const input = document.getElementById('comment-image-input');
+  if (preview) preview.style.display = 'none';
+  if (previewImg) previewImg.src = '';
+  if (input) input.value = '';
 }
 
 /* ── 查看评论大图 ── */
@@ -269,14 +302,24 @@ function openCommentImage(src) {
     overlay.style.opacity = '0';
     setTimeout(() => overlay.remove(), 300);
   };
-  overlay.innerHTML = `<img src="${src}" alt="大图">`;
+  overlay.innerHTML = `<img src="${escapeAttr(src)}" alt="大图">`;
   document.body.appendChild(overlay);
-  requestAnimationFrame(() => overlay.style.opacity = '1');
+  requestAnimationFrame(() => {
+    overlay.style.opacity = '1';
+  });
 }
 
 /* ── 工具函数 ── */
 function escapeHtml(text) {
   const div = document.createElement('div');
-  div.textContent = text;
+  div.textContent = text || '';
   return div.innerHTML;
+}
+
+function escapeAttr(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
