@@ -48,7 +48,7 @@
         </ul>
       </div>
 
-      <p class="participant-count" style="text-align: center; color: rgba(255,255,255,0.6); margin-bottom: 20px; font-size: 0.9rem;">已有 8,924 人参与测试</p>
+      <p id="objtest-participant-count" class="participant-count">已有 8,924 人参与测试</p>
 
       <button id="start-btn" class="btn-primary" onclick="startTest()">
         开始探索
@@ -150,13 +150,13 @@
           <p>公众号：<span class="author-name">觉醒诗社</span></p>
         </div>
         <div class="qrcode-container-fixed">
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://qingye520.xyz/%E5%AD%90%E9%A1%B5%E9%9D%A2/%E5%AE%A2%E4%BD%93%E5%8C%96%E6%B5%8B%E8%AF%95/" alt="测评二维码" />
+          <img src="../SoulLab/images/qrcode.png" alt="测评二维码" loading="eager" />
           <p>扫码测评</p>
         </div>
       </div>
     </div>
     <!-- 评论区 -->
-    <div id="comments-section" class="card-bg" data-page="objtest"></div>
+    <div id="comments-section" class="result-comments-shell" data-page="objtest"></div>
   </section>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

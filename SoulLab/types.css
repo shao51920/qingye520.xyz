@@ -549,16 +549,37 @@ body {
   margin-bottom: var(--space-md);
 }
 
+.detail-name-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-xs);
+  padding: 7px 12px;
+  max-width: min(84vw, 300px);
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #a78bfa, #6366f1, #8b5cf6, #a855f7, #ec4899);
+  background-size: 200% 200%;
+  animation: gradientShift 4s ease infinite;
+  box-shadow: 0 3px 16px rgba(139, 92, 246, 0.34);
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
 .detail-name {
   font-family: var(--font-display);
-  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  font-size: clamp(1.2rem, 3.2vw, 1.55rem);
   font-weight: 800;
-  background: var(--gradient-main);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
   line-height: 1.3;
-  margin-bottom: var(--space-xs);
+  margin-bottom: 0;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
 .detail-subtitle {

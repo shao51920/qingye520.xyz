@@ -221,36 +221,48 @@ function saveResult() {
 
 function performCapture() {
   const target = document.getElementById('capture-area');
-  
+  if (!target) return;
+
   // 临时隐藏操作按钮
   const actions = target.querySelector('.result-actions');
+  if (!actions) return;
   const originalDisplay = actions.style.display;
   actions.style.display = 'none';
 
-  html2canvas(target, {
-    useCORS: true,
-    scale: 2,
-    backgroundColor: '#fdfbf7', // 匹配 --bg-primary
-    logging: false
-  }).then(canvas => {
-    actions.style.display = originalDisplay;
-    
-    const link = document.createElement('a');
-    const now = new Date();
-    const timestamp = now.getFullYear() + 
-      String(now.getMonth() + 1).padStart(2, '0') + 
-      String(now.getDate()).padStart(2, '0') + '_' + 
-      String(now.getHours()).padStart(2, '0') + 
-      String(now.getMinutes()).padStart(2, '0') + 
-      String(now.getSeconds()).padStart(2, '0');
-    
-    link.download = `测评结果_${timestamp}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-  }).catch(err => {
-    console.error('保存失败:', err);
-    actions.style.display = originalDisplay;
-  });
+  const attemptCapture = (scale) => {
+    html2canvas(target, {
+      useCORS: true,
+      allowTaint: false,
+      scale,
+      backgroundColor: '#fdfbf7',
+      logging: false
+    }).then(canvas => {
+      actions.style.display = originalDisplay;
+
+      const link = document.createElement('a');
+      const now = new Date();
+      const timestamp = now.getFullYear() +
+        String(now.getMonth() + 1).padStart(2, '0') +
+        String(now.getDate()).padStart(2, '0') + '_' +
+        String(now.getHours()).padStart(2, '0') +
+        String(now.getMinutes()).padStart(2, '0') +
+        String(now.getSeconds()).padStart(2, '0');
+
+      link.download = `测评结果_${timestamp}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }).catch(err => {
+      if (scale > 1.2) {
+        attemptCapture(1.2);
+        return;
+      }
+      console.error('保存失败:', err);
+      actions.style.display = originalDisplay;
+      alert('生成海报失败，请重试一次或直接截图保存。');
+    });
+  };
+
+  attemptCapture(2);
 }
 
 // Keyboard nav

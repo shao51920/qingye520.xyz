@@ -133,7 +133,9 @@
         </div>
         <div class="detail-right">
           <div class="detail-header">
-            <h2 class="detail-name">${p.name}</h2>
+            <div class="detail-name-chip">
+              <h2 class="detail-name">${p.name}</h2>
+            </div>
             <div class="detail-subtitle">${p.subtitle}</div>
           </div>
           <div class="detail-tags">${tagsHTML}</div>

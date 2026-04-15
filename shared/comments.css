@@ -12,26 +12,28 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--comments-bg, rgba(255,255,255,0.04)) 78%, transparent);
+  border: 1px solid var(--comments-border, rgba(255, 255, 255, 0.08));
 }
 
 .comments-header h3 {
   font-size: 1.15rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--comments-heading, rgba(255, 255, 255, 0.9));
   letter-spacing: 0.02em;
 }
 
 .comments-count {
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--comments-muted, rgba(255, 255, 255, 0.35));
 }
 
 /* ── 评论输入区 ── */
 .comment-input-area {
-  margin-bottom: 28px;
+  margin-bottom: 22px;
 }
 
 .comment-input-login-hint {
@@ -39,22 +41,23 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  padding: 24px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px dashed rgba(255, 255, 255, 0.1);
+  padding: 24px 16px;
+  background: color-mix(in srgb, var(--comments-bg, rgba(255,255,255,0.04)) 85%, transparent);
+  border: 1px dashed var(--comments-border, rgba(255, 255, 255, 0.12));
   border-radius: 14px;
 }
 
 .comment-input-login-hint p {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--comments-muted, rgba(255, 255, 255, 0.4));
   font-size: 0.9rem;
 }
 
 .comment-input-box {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--comments-bg, rgba(255,255,255,0.04)) 82%, transparent);
+  border: 1px solid var(--comments-border, rgba(255, 255, 255, 0.08));
   border-radius: 14px;
   padding: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
 }
 
 .comment-user-info {
@@ -73,7 +76,7 @@
 
 #comment-username {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--comments-text, rgba(255, 255, 255, 0.7));
   font-weight: 500;
 }
 
@@ -81,10 +84,10 @@
   width: 100%;
   min-height: 72px;
   padding: 10px 12px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--comments-bg, rgba(255,255,255,0.04)) 72%, transparent);
+  border: 1px solid var(--comments-border, rgba(255, 255, 255, 0.1));
   border-radius: 10px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--comments-text, rgba(255, 255, 255, 0.9));
   font-size: 0.9rem;
   line-height: 1.6;
   resize: vertical;
@@ -94,11 +97,12 @@
 }
 
 #comment-text:focus {
-  border-color: rgba(167, 139, 250, 0.4);
+  border-color: color-mix(in srgb, var(--comments-accent, #a78bfa) 65%, white 12%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--comments-accent, #a78bfa) 18%, transparent);
 }
 
 #comment-text::placeholder {
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--comments-muted, rgba(255, 255, 255, 0.25));
 }
 
 .comment-input-actions {
@@ -115,27 +119,31 @@
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.5);
+  background: color-mix(in srgb, var(--comments-bg, rgba(255,255,255,0.04)) 82%, transparent);
+  color: var(--comments-muted, rgba(255, 255, 255, 0.5));
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .comment-upload-btn:hover {
-  background: rgba(167, 139, 250, 0.15);
-  color: rgba(167, 139, 250, 0.9);
+  background: color-mix(in srgb, var(--comments-accent, #a78bfa) 18%, transparent);
+  color: var(--comments-accent, #a78bfa);
 }
 
 .comment-char-count {
   flex: 1;
   text-align: right;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.25);
+  color: var(--comments-muted, rgba(255, 255, 255, 0.25));
 }
 
 .comment-submit-btn {
   padding: 7px 20px;
-  background: linear-gradient(135deg, #a78bfa, #6366f1);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--comments-accent, #a78bfa) 92%, white 8%),
+    color-mix(in srgb, var(--comments-accent, #a78bfa) 72%, black 18%)
+  );
   border: none;
   border-radius: 8px;
   color: white;
@@ -147,7 +155,7 @@
 
 .comment-submit-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(167, 139, 250, 0.3);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--comments-accent, #a78bfa) 35%, transparent);
 }
 
 .comment-submit-btn:disabled {
@@ -198,26 +206,30 @@
 .comments-empty {
   text-align: center;
   padding: 40px 20px;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--comments-muted, rgba(255, 255, 255, 0.3));
   font-size: 0.9rem;
 }
 
 .comments-loading {
   text-align: center;
   padding: 30px;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--comments-muted, rgba(255, 255, 255, 0.3));
   font-size: 0.85rem;
 }
 
 .comment-item {
   display: flex;
   gap: 12px;
-  padding: 16px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 14px;
+  border: 1px solid var(--comments-border, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--comments-bg, rgba(255,255,255,0.04)) 80%, transparent);
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
-.comment-item:last-child {
-  border-bottom: none;
+.comment-item:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--comments-accent, #a78bfa) 36%, var(--comments-border, rgba(255, 255, 255, 0.08)));
 }
 
 .comment-item-avatar {
@@ -243,12 +255,12 @@
 .comment-item-name {
   font-size: 0.85rem;
   font-weight: 600;
-  color: rgba(167, 139, 250, 0.9);
+  color: var(--comments-accent, rgba(167, 139, 250, 0.9));
 }
 
 .comment-item-time {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.25);
+  color: var(--comments-muted, rgba(255, 255, 255, 0.25));
 }
 
 .comment-delete-btn {
@@ -271,7 +283,7 @@
 .comment-item-text {
   font-size: 0.9rem;
   line-height: 1.7;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--comments-text, rgba(255, 255, 255, 0.75));
   word-break: break-word;
 }
 

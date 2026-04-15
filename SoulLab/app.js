@@ -14,9 +14,9 @@ async function loadParticipantCount() {
       .from('comments')
       .select('*', { count: 'exact', head: true })
       .eq('page_type', 'soullab');
-    
+
     if (error) throw error;
-    
+
     const countEl = document.getElementById('soullab-participant-count');
     if (countEl) {
       countEl.textContent = `已有 ${count || 0} 人参与测试`;
@@ -116,17 +116,17 @@ if (typeof supabase !== 'undefined') {
 function showPage(pageId) {
   const pages = document.querySelectorAll('.page');
   pages.forEach(page => page.classList.remove('active'));
-  
+
   const targetPage = document.getElementById(pageId);
   if (targetPage) {
     targetPage.classList.add('active');
   }
-  
+
   // 更新 body class 用于 CSS 控制按钮显隐
   document.body.classList.remove('landing-active', 'result-active');
   if (pageId === 'landing') document.body.classList.add('landing-active');
   if (pageId === 'result') document.body.classList.add('result-active');
-  
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   if (pageId === 'quiz') {
@@ -361,7 +361,7 @@ function animateMeter(fillId, value) {
   const valEl = document.getElementById(fillId + '-val');
   if (!fill || !valEl) return;
   fill.style.width = value + '%';
-  
+
   // Animate number count up
   let current = 0;
   const step = value / 30;
@@ -384,7 +384,7 @@ function restartTest() {
 
 function shareResult() {
   showToast('正在生成专属海报，请稍候...');
-  
+
   if (typeof html2canvas === 'undefined') {
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
@@ -429,10 +429,10 @@ function generatePoster() {
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
 
-  const doCapture = () => {
+  const doCapture = (scale = 2) => {
     html2canvas(wrapper, {
       backgroundColor: '#0a0a1a',
-      scale: 2,
+      scale,
       useCORS: true,
       allowTaint: false,
       imageTimeout: 15000,
@@ -448,7 +448,7 @@ function generatePoster() {
       overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity 0.3s;';
 
       const hint = document.createElement('p');
-      hint.textContent = '长按图片保存，或截图分享给朋友 ✨';
+      hint.textContent = '长按图片保存，分享给朋友 ✨';
       hint.style.cssText = 'color:rgba(255,255,255,0.85);margin-bottom:14px;font-size:14px;letter-spacing:1px;';
 
       const img = document.createElement('img');
@@ -468,9 +468,13 @@ function generatePoster() {
       showToast('海报生成完毕！');
 
     }).catch(err => {
+      if (scale > 1.2) {
+        doCapture(1.2);
+        return;
+      }
       if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
       console.error('海报生成失败:', err);
-      showToast('生成失败，建议直接截图保存 📸');
+      showToast('生成失败，请重试或直接截图保存 📸');
     });
   };
 
@@ -483,7 +487,7 @@ function generatePoster() {
       const c = document.createElement('canvas');
       c.width = preload.naturalWidth; c.height = preload.naturalHeight;
       c.getContext('2d').drawImage(preload, 0, 0);
-      try { imgEl.src = c.toDataURL('image/png'); } catch(e) { /* 跨域时跳过 */ }
+      try { imgEl.src = c.toDataURL('image/png'); } catch (e) { /* 跨域时跳过 */ }
       doCapture();
     };
     preload.onerror = doCapture; // 加载失败也继续截图

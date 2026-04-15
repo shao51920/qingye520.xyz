@@ -16,14 +16,13 @@ function initComments() {
 
   container.innerHTML = `
     <div class="comments-wrapper">
-      <div class="comments-header">
-        <h3>💬 灵魂碎片交流区</h3>
+      <div class=留下一盏你的心灯</h3>
         <span class="comments-count" id="comments-count">加载中...</span>
       </div>
 
       <div class="comment-input-area" id="comment-input-area">
         <div class="comment-input-login-hint" id="comment-login-hint">
-          <p>登录后即可发表评论</p>
+          <p>登录后即可留言</p>
           <button class="auth-login-btn" onclick="openAuthModal()">登录 / 注册</button>
         </div>
         <div class="comment-input-box" id="comment-input-box" style="display:none">

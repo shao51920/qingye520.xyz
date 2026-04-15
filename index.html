@@ -11,6 +11,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;700;900&family=Cinzel:wght@400;700&family=Inter:wght@200;300;400&display=swap"
     rel="stylesheet" />
+  <link rel="preload" as="image" href="逍遥游.webp" fetchpriority="high" />
   <link rel="stylesheet" href="shared/auth.css">
   <style>
     *,
@@ -140,8 +141,8 @@
       letter-spacing: 2px;
       font-weight: 300;
       opacity: 0;
-      transform: translateY(10px);
-      transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: translateY(16px);
+      animation: fadeSlideUp 0.85s ease 1.8s forwards;
       text-shadow: 0 0 20px rgba(201, 168, 76, 0.4);
     }
 
@@ -205,11 +206,17 @@
       left: -5vw;
       background: url('逍遥游.webp') no-repeat center center;
       background-size: cover;
-      animation: whaleSwim 45s ease-in-out infinite alternate;
-      image-rendering: -webkit-optimize-contrast;
-      /* 提高渲染性能 */
+      animation: whaleSwim 60s ease-in-out infinite alternate;
       will-change: transform;
-      /* 告诉浏览器这个元素会变动，提前优化 */
+      transform: translate3d(0, 0, 0);
+      backface-visibility: hidden;
+      contain: paint;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+
+    body.whale-ready .whale-img {
+      opacity: 1;
     }
 
     @keyframes whaleSwim {
@@ -493,14 +500,14 @@
       margin-top: 1.5rem;
       /* 调整间距，使入口抬升到登录位置下方 */
       opacity: 0;
-      animation: fadeSlideUp 1s ease 2.5s forwards;
+      animation: fadeSlideUp 0.8s ease 1.8s forwards;
       perspective: 1000px;
     }
 
     .evaluation-entries.more-entries {
       margin-top: 1rem;
       margin-bottom: 2rem;
-      animation-delay: 2.8s;
+      animation-delay: 2.05s;
     }
 
     /* ── 底部标签 ── */
@@ -763,8 +770,8 @@
     </p>
 
     <!-- 登录欢迎入口 -->
-    <div id="home-greeting" class="home-auth-welcome show" style="animation-delay: 2.5s;">
-      你好，<span class="home-auth-login-trigger" onclick="openAuthModal()">登录觉醒诗社</span>
+    <div id="home-greeting" class="home-auth-welcome show">
+      你好，欢迎<span class="home-auth-login-trigger" onclick="openAuthModal()">登录</span>
     </div>
 
     <!-- 测评入口 -->
@@ -793,6 +800,13 @@
   </main>
 
   <script>
+    const whaleImagePreload = new Image();
+    whaleImagePreload.decoding = 'async';
+    whaleImagePreload.src = '逍遥游.webp';
+    whaleImagePreload.onload = () => document.body.classList.add('whale-ready');
+    whaleImagePreload.onerror = () => document.body.classList.add('whale-ready');
+    setTimeout(() => document.body.classList.add('whale-ready'), 1800);
+
     /* ────────────────────────────────
        1. 自定义光标
     ──────────────────────────────── */
@@ -1030,9 +1044,6 @@
       document.querySelector('.title-zh').style.textShadow =
         `${dx * 10}px ${dy * 10}px 40px rgba(201,168,76,0.3)`;
 
-      // 鲸鱼视差效果
-      document.querySelector('.whale-img').style.transform =
-        `translate(${dx * -15}px, ${dy * -10}px) scale(1.02)`;
     });
   </script>
   <footer
@@ -1050,10 +1061,11 @@
       const greetingEl = document.getElementById('home-greeting');
       if (!greetingEl) return;
 
-      if (currentUser && currentProfile) {
-        greetingEl.innerHTML = `你好，<span style="color:var(--gold-light)">${currentProfile.nickname || '觉者'}</span>。 愿你照亮真实的内在。`;
+      if (currentUser) {
+        const displayName = currentProfile?.nickname || currentUser.user_metadata?.nickname || currentUser.email || '觉者';
+        greetingEl.innerHTML = `你好，<span style="color:var(--gold-light)">${displayName}</span>。 愿你照亮真实的内在。`;
       } else {
-        greetingEl.innerHTML = `你好，请登录 <span class="home-auth-login-trigger" onclick="openAuthModal()">点此登录/注册 →</span>`;
+        greetingEl.innerHTML = `你好，欢迎登录 <span class="home-auth-login-trigger" onclick="openAuthModal()">点此登录/注册 →</span>`;
       }
     };
   </script>

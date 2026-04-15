@@ -115,12 +115,17 @@
 .auth-modal {
   position: fixed;
   inset: 0;
-  z-index: 10000;
+  z-index: 100000;
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
   transition: opacity 0.3s ease;
+}
+
+.auth-modal,
+.auth-modal * {
+  cursor: auto !important;
 }
 
 .auth-modal.show {
@@ -183,6 +188,10 @@
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.45);
   margin-bottom: 24px;
+}
+
+.auth-modal-sub-main {
+  margin-top: 8px;
 }
 
 /* ── Tabs ── */
@@ -277,4 +286,3 @@
   cursor: not-allowed;
   transform: none;
 }
-

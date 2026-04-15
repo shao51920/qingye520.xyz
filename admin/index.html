@@ -196,6 +196,33 @@
 
     var adminUser = null;
 
+    function hasAdminMetadata(user) {
+      return Boolean(
+        user?.app_metadata?.role === 'admin' ||
+        user?.app_metadata?.is_admin === true ||
+        user?.user_metadata?.is_admin === true
+      );
+    }
+
+    async function getProfileAdminState(user) {
+      if (!user?.id) return false;
+
+      // 兜底：确保 profile 存在，避免历史账号因缺 profile 导致“看起来无法登录”
+      await db.from('profiles').upsert({
+        id: user.id,
+        nickname: user.user_metadata?.nickname || '管理员',
+        avatar_url: user.user_metadata?.avatar_url || ('https://api.dicebear.com/7.x/bottts-neutral/svg?seed=' + user.id)
+      });
+
+      const { data: profile } = await db
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      return profile?.is_admin === true;
+    }
+
     /* ── 登录 ── */
     async function adminLogin() {
       const email = document.getElementById('login-email').value;
@@ -204,11 +231,22 @@
       errorEl.textContent = '';
 
       const { data, error } = await db.auth.signInWithPassword({ email, password });
-      if (error) { errorEl.textContent = '登录失败：' + error.message; return; }
+      if (error) {
+        if (error.message?.includes('Email not confirmed')) {
+          errorEl.textContent = '登录失败：邮箱未验证，请先到邮箱完成验证。';
+        } else if (error.message?.includes('Invalid API key')) {
+          errorEl.textContent = '登录失败：站点认证配置异常（Supabase Key 无效）。';
+        } else if (error.message?.includes('Invalid login')) {
+          errorEl.textContent = '登录失败：邮箱或密码错误。';
+        } else {
+          errorEl.textContent = '登录失败：' + error.message;
+        }
+        return;
+      }
 
-      // 检查是否为管理员
-      const { data: profile } = await db.from('profiles').select('is_admin').eq('id', data.user.id).single();
-      if (!profile || !profile.is_admin) {
+      // 检查是否为管理员：优先 profiles.is_admin，其次 auth app/user metadata
+      const isAdmin = await getProfileAdminState(data.user) || hasAdminMetadata(data.user);
+      if (!isAdmin) {
         errorEl.textContent = '你不是管理员';
         await db.auth.signOut();
         return;
@@ -229,8 +267,8 @@
     async function checkSession() {
       const { data: { session } } = await db.auth.getSession();
       if (!session) return;
-      const { data: profile } = await db.from('profiles').select('is_admin').eq('id', session.user.id).single();
-      if (profile && profile.is_admin) {
+      const isAdmin = await getProfileAdminState(session.user) || hasAdminMetadata(session.user);
+      if (isAdmin) {
         adminUser = session.user;
         document.getElementById('admin-login').style.display = 'none';
         document.getElementById('admin-app').style.display = 'block';
