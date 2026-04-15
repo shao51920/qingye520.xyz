@@ -1,12 +1,12 @@
-<img 宽度="150" 高度="150" alt="image" src="https://github.com/user-attachments/assets/1a39bedd-db20-4638-b491-37cc65149f27" /># 觉醒诗社（Awakening Poetry）
+# 觉醒诗社（Awakening Poetry）
 
 > “认识生命真相，活出觉醒人生”
 
 欢迎来到**觉醒诗社**。这是一个致力于生命真相探索、意识觉醒与自我剖析的精神自救站。
 
-## 🌌 核心模块
+##🌌 核心模块
 
-### 1. [灵性人格测试](https://qingye520.xyz/SoulLab/)
+###1.[灵性人格测试](https://qingye520.xyz/SoulLab/)
 抛却 MBTI 的刻板定义，用 33 个直指内心的叩问，带你进行一次温柔而彻底的「自我解剖」。
 - **特色**：12 种独特的灵性原型显化，深空呼吸感的视觉交互。
 
