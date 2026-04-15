@@ -1,4 +1,4 @@
-# 觉醒诗社（Awakening Poetry）
+<img 宽度="150" 高度="150" alt="image" src="https://github.com/user-attachments/assets/1a39bedd-db20-4638-b491-37cc65149f27" /># 觉醒诗社（Awakening Poetry）
 
 > “认识生命真相，活出觉醒人生”
 
@@ -24,3 +24,4 @@
 ---
 © 2026 公众号【觉醒诗社】 · [qingye520.xyz](https://qingye520.xyz)
 作者：青野
+"![正在上传 image.png…]("\")"
