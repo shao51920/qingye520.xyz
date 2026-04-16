@@ -330,13 +330,32 @@ function renderCommentThread(comment) {
     .filter(item => item.parent_comment_id === comment.id && !item.is_hidden)
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
+  const replyCount = replies.length;
+  const isExpanded = activeReplyTargetId === comment.id || comment._repliesExpanded;
+
   return `
     <div class="comment-thread" id="comment-thread-${comment.id}">
-      ${renderSingleComment(comment, false)}
-      ${replies.length ? `<div class="comment-replies">${replies.map(reply => renderSingleComment(reply, true)).join('')}</div>` : ''}
+      ${renderSingleComment(comment, false, replyCount)}
+      ${replyCount > 0 ? `
+        <div class="comment-replies-toggle" onclick="toggleReplies('${comment.id}')">
+          <span class="replies-toggle-icon ${isExpanded ? 'expanded' : ''}">▼</span>
+          <span>${replyCount} 条回复</span>
+        </div>
+        <div class="comment-replies ${isExpanded ? 'expanded' : 'collapsed'}">
+          ${replies.map(reply => renderSingleComment(reply, true)).join('')}
+        </div>
+      ` : ''}
       ${renderReplyComposer(comment.id, comment.page_type)}
     </div>
   `;
+}
+
+function toggleReplies(commentId) {
+  const comment = commentsState.find(c => c.id === commentId);
+  if (comment) {
+    comment._repliesExpanded = !comment._repliesExpanded;
+    renderCommentsList();
+  }
 }
 
 function renderReplyComposer(commentId, pageType) {
@@ -361,7 +380,7 @@ function renderReplyComposer(commentId, pageType) {
   `;
 }
 
-function renderSingleComment(comment, isReply) {
+function renderSingleComment(comment, isReply, replyCount) {
   const profile = getCommentDisplayProfile(comment.user_id);
   const name = profile.nickname || '匿名用户';
   const avatarValue = profile.avatar_url || getProfileAvatarValue(profile);
@@ -394,11 +413,18 @@ function renderSingleComment(comment, isReply) {
         <p class="comment-item-text">${escapeHtml(comment.content || '')}</p>
         ${imageHtml}
         <div class="comment-item-actions">
-          <button class="comment-action-btn${likedByCurrentUser ? ' active' : ''}" onclick="toggleCommentLike('${comment.id}')">
-            <span>❤</span>
-            <span>点赞 ${likeCount}</span>
+          <button class="comment-action-btn comment-like-btn${likedByCurrentUser ? ' active' : ''}" onclick="toggleCommentLike('${comment.id}')" title="${likeCount > 0 ? likeCount + ' 人点赞' : '点赞'}">
+            <svg class="heart-icon" viewBox="0 0 24 24" fill="${likedByCurrentUser ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+            ${likeCount > 0 ? `<span class="like-count">${likeCount}</span>` : ''}
           </button>
-          <button class="comment-action-btn" onclick="toggleReplyComposer('${comment.id}')">回复</button>
+          <button class="comment-action-btn comment-reply-action-btn" onclick="toggleReplyComposer('${comment.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+            <span>回复</span>
+          </button>
         </div>
       </div>
     </div>
@@ -549,6 +575,11 @@ async function toggleCommentLike(commentId) {
   if (!client) return;
   if (!currentUser) {
     openAuthModal();
+    return;
+  }
+
+  // 跳过临时评论的点赞（临时ID不是有效的UUID）
+  if (commentId.startsWith('temp-')) {
     return;
   }
 

@@ -162,7 +162,7 @@
 
 .comment-item-actions {
   margin-top: 10px;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -243,9 +243,86 @@
 }
 
 .comment-action-btn.active {
-  color: #ffd6df;
-  background: rgba(244, 114, 182, 0.16);
-  border-color: rgba(244, 114, 182, 0.32);
+  color: #ff6b8a;
+  background: rgba(255, 107, 138, 0.15);
+  border-color: rgba(255, 107, 138, 0.35);
+}
+
+/* 点赞按钮样式 - 只显示心形图标 */
+.comment-like-btn {
+  padding: 6px 10px;
+  gap: 4px;
+  min-width: 36px;
+}
+
+.comment-like-btn .heart-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+}
+
+.comment-like-btn:hover .heart-icon {
+  transform: scale(1.15);
+}
+
+.comment-like-btn.active .heart-icon {
+  filter: drop-shadow(0 0 4px rgba(255, 107, 138, 0.5));
+}
+
+.comment-like-btn .like-count {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* 回复按钮样式 */
+.comment-reply-action-btn {
+  padding: 6px 12px;
+  gap: 6px;
+}
+
+.comment-reply-action-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 回复折叠切换 */
+.comment-replies-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 8px 48px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  color: var(--comments-muted, rgba(255, 255, 255, 0.5));
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.comment-replies-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--comments-text, rgba(255, 255, 255, 0.8));
+}
+
+.replies-toggle-icon {
+  font-size: 0.7rem;
+  transition: transform 0.2s ease;
+}
+
+.replies-toggle-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.comment-replies.collapsed {
+  display: none;
+}
+
+.comment-replies.expanded {
+  display: flex;
 }
 
 .comment-reply-submit {
@@ -384,6 +461,18 @@
   flex-direction: column;
   gap: 10px;
   margin-left: 22px;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .comment-reply-panel {
