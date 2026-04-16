@@ -882,6 +882,24 @@
   </main>
 
   <script>
+    /* ── 0. 检查新用户欢迎提示 ── */
+    (function checkWelcomeToast() {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('welcome') === 'newuser') {
+        // 清除参数
+        url.searchParams.delete('welcome');
+        window.history.replaceState({}, '', url.toString());
+        // 延迟显示欢迎提示，等待页面完全加载
+        document.addEventListener('DOMContentLoaded', () => {
+          setTimeout(() => {
+            if (typeof showWelcomeToast === 'function') {
+              showWelcomeToast();
+            }
+          }, 500);
+        });
+      }
+    })();
+
     /* ── 1. 鲸鱼图片加载 ── */
     const whaleImage = document.querySelector('.whale-img');
     const revealWhale = () => document.body.classList.add('whale-ready');

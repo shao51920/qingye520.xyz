@@ -459,3 +459,158 @@
 .profile-upload-btn input {
   display: none;
 }
+
+/* ── 注册进度提示 ── */
+.auth-error.is-progress {
+  color: #f0d080;
+  animation: pulseProgress 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseProgress {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+/* ── 欢迎提示 Toast ── */
+#welcome-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  z-index: 100001;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#welcome-toast.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+#welcome-toast.fade-out {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.95);
+  transition: all 0.6s ease;
+}
+
+.welcome-toast-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px 40px;
+  background: linear-gradient(135deg, rgba(12, 8, 20, 0.98) 0%, rgba(20, 14, 35, 0.98) 100%);
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  border-radius: 16px;
+  box-shadow:
+    0 0 60px rgba(201, 168, 76, 0.3),
+    0 0 120px rgba(201, 168, 76, 0.15),
+    inset 0 0 30px rgba(201, 168, 76, 0.05);
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 金色光晕动画效果 */
+.welcome-toast-content::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(201, 168, 76, 0.3) 50%,
+    transparent 70%
+  );
+  border-radius: 18px;
+  z-index: -1;
+  animation: goldenGlowRotate 3s linear infinite;
+}
+
+.welcome-toast-content::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  background: linear-gradient(135deg, rgba(12, 8, 20, 0.98) 0%, rgba(20, 14, 35, 0.98) 100%);
+  border-radius: 15px;
+  z-index: -1;
+}
+
+@keyframes goldenGlowRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.welcome-toast-icon {
+  font-size: 1.4rem;
+  color: #f0d080;
+  text-shadow: 0 0 20px rgba(201, 168, 76, 0.8);
+  animation: iconSparkle 1.5s ease-in-out infinite;
+}
+
+.welcome-toast-icon:first-child {
+  animation-delay: 0s;
+}
+
+.welcome-toast-icon:last-child {
+  animation-delay: 0.75s;
+}
+
+@keyframes iconSparkle {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+    text-shadow: 0 0 30px rgba(201, 168, 76, 1);
+  }
+}
+
+.welcome-toast-text {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #f0d080;
+  letter-spacing: 0.1em;
+  text-shadow:
+    0 0 20px rgba(201, 168, 76, 0.6),
+    0 0 40px rgba(201, 168, 76, 0.3);
+  background: linear-gradient(135deg, #f0d080 0%, #c9a84c 50%, #f0d080 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: textShimmer 2s ease-in-out infinite;
+}
+
+@keyframes textShimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* 移动端适配 */
+@media (max-width: 640px) {
+  .welcome-toast-content {
+    padding: 18px 28px;
+    gap: 12px;
+  }
+
+  .welcome-toast-text {
+    font-size: 1.05rem;
+  }
+
+  .welcome-toast-icon {
+    font-size: 1.1rem;
+  }
+}

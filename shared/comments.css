@@ -253,16 +253,26 @@
   padding: 6px 10px;
   gap: 4px;
   min-width: 36px;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .comment-like-btn .heart-icon {
   width: 16px;
   height: 16px;
   transition: transform 0.2s ease;
+  display: block;
+}
+
+.comment-like-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .comment-like-btn:hover .heart-icon {
   transform: scale(1.15);
+}
+
+.comment-like-btn.active {
+  color: #ff6b8a;
 }
 
 .comment-like-btn.active .heart-icon {
@@ -278,11 +288,17 @@
 .comment-reply-action-btn {
   padding: 6px 12px;
   gap: 6px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.comment-reply-action-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .comment-reply-action-btn svg {
   width: 14px;
   height: 14px;
+  display: block;
 }
 
 /* 回复折叠切换 */
@@ -669,6 +685,7 @@
   .comment-like-btn {
     padding: 5px 8px;
     min-width: 32px;
+    color: rgba(255, 255, 255, 0.6);
   }
 
   .comment-like-btn .heart-icon {
@@ -676,8 +693,13 @@
     height: 14px;
   }
 
+  .comment-like-btn.active {
+    color: #ff6b8a;
+  }
+
   .comment-reply-action-btn {
     padding: 5px 10px;
+    color: rgba(255, 255, 255, 0.6);
   }
 
   .comment-reply-action-btn svg {

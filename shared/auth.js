@@ -564,6 +564,19 @@ const AuthService = (() => {
     if (error) throw error;
   }
 
+  // 注册进度回调，用于UI状态更新
+  let registerProgressCallback = null;
+
+  function setRegisterProgressCallback(callback) {
+    registerProgressCallback = callback;
+  }
+
+  function updateRegisterProgress(stage, message) {
+    if (registerProgressCallback) {
+      registerProgressCallback({ stage, message });
+    }
+  }
+
   async function submitAuthForm({ email, password, code }) {
     const client = getAuthClient();
     if (!client?.auth) throw new Error('认证模块初始化失败，请刷新页面后重试');
@@ -579,6 +592,9 @@ const AuthService = (() => {
 
       const verifyEmail = pendingRegisterEmail || email;
       let verifyResult = null;
+
+      // 阶段1: 验证验证码
+      updateRegisterProgress('verifying', '正在验证验证码...');
       try {
         verifyResult = await withTimeout(
           client.auth.verifyOtp({
@@ -606,6 +622,8 @@ const AuthService = (() => {
         throw new Error('验证码验证失败，请重新获取');
       }
 
+      // 阶段2: 设置账户信息
+      updateRegisterProgress('creating', '正在创建您的账户...');
       await withTimeout(
         Promise.allSettled([
           withTimeout(
@@ -643,9 +661,10 @@ const AuthService = (() => {
         '设置注册资料超时'
       );
 
-      await client.auth.signOut();
-      currentUser = null;
-      currentProfile = null;
+      // 阶段3: 自动登录（不再signOut，保持会话）
+      updateRegisterProgress('logging_in', '正在自动登录...');
+
+      // 清理注册状态
       pendingRegisterEmail = '';
       pendingRegisterNickname = '';
       authMode = 'login';
@@ -654,9 +673,23 @@ const AuthService = (() => {
         otpCooldownTimer = null;
       }
       otpCooldownSeconds = 0;
+
+      // 初始化用户UI并同步资料
+      primeAuthenticatedUI(authedUser, registerNickname);
+      finishPasswordAuth(client, authedUser, registerNickname).catch((syncError) => {
+        console.error('注册后资料同步失败:', syncError);
+      });
+
       notify('register-complete');
 
-      return { mode: 'register', email, password };
+      // 返回登录成功状态，包含用户信息
+      return {
+        mode: 'register',
+        email,
+        password,
+        autoLogin: true,
+        user: authedUser
+      };
     }
 
     const { data, error } = await withTimeout(
@@ -796,7 +829,9 @@ const AuthService = (() => {
     submitAuthForm,
     logoutSession,
     saveProfile,
-    resetPassword
+    resetPassword,
+    setRegisterProgressCallback,
+    updateRegisterProgress
   };
 })();
 
@@ -1273,6 +1308,19 @@ async function finishPasswordAuth(client, authedUser, overrideNickname) {
   AuthService.notify('session-synced');
 }
 
+// 注册进度UI更新
+function updateRegisterProgressUI({ stage, message }) {
+  const submitBtn = document.getElementById('auth-submit-btn');
+  const errorEl = document.getElementById('auth-error');
+  if (submitBtn) {
+    submitBtn.textContent = message;
+  }
+  if (errorEl && message) {
+    errorEl.classList.add('is-progress');
+    errorEl.textContent = message;
+  }
+}
+
 async function handleAuthSubmit(e) {
   e.preventDefault();
   const emailInput = document.getElementById('auth-email');
@@ -1290,6 +1338,9 @@ async function handleAuthSubmit(e) {
     return;
   }
 
+  // 设置进度回调
+  AuthService.setRegisterProgressCallback(updateRegisterProgressUI);
+
   submitBtn.disabled = true;
   submitBtn.textContent = authMode === 'register' ? '验证中...' : '登录中...';
   markAuthMessage('');
@@ -1297,11 +1348,30 @@ async function handleAuthSubmit(e) {
   try {
     const result = await AuthService.submitAuthForm({ email, password, code });
     if (result.mode === 'register') {
-      setAuthMode('login');
-      emailInput.value = email;
-      passwordInput.value = password;
-      codeInput.value = '';
-      updateAuthSubmitState();
+      if (result.autoLogin && result.user) {
+        // 注册并自动登录成功
+        closeAuthModal();
+        // 显示欢迎提示
+        showWelcomeToast();
+        // 如果在非首页，跳转到首页
+        const currentPath = window.location.pathname;
+        const isHomePage = currentPath === '/' || currentPath === '/index.html' || currentPath.endsWith('/index.html') || currentPath === '';
+        if (!isHomePage) {
+          window.location.href = '/index.html?welcome=newuser';
+        } else {
+          // 在首页，添加URL参数标记新用户
+          const url = new URL(window.location.href);
+          url.searchParams.set('welcome', 'newuser');
+          window.history.replaceState({}, '', url.toString());
+        }
+      } else {
+        // 兼容旧逻辑
+        setAuthMode('login');
+        emailInput.value = email;
+        passwordInput.value = password;
+        codeInput.value = '';
+        updateAuthSubmitState();
+      }
       return;
     }
 
@@ -1311,6 +1381,7 @@ async function handleAuthSubmit(e) {
   } catch (err) {
     markAuthMessage(normalizeAuthErrorMessage(err?.message || '操作失败'));
   } finally {
+    AuthService.setRegisterProgressCallback(null);
     const activeSubmitBtn = document.getElementById('auth-submit-btn');
     if (activeSubmitBtn) {
       activeSubmitBtn.textContent = getAuthSubmitLabel();
@@ -1439,6 +1510,38 @@ async function submitPasswordReset() {
   }
 }
 
+// 欢迎提示Toast函数
+function showWelcomeToast() {
+  // 检查是否已存在欢迎提示
+  if (document.getElementById('welcome-toast')) return;
+
+  const toast = document.createElement('div');
+  toast.id = 'welcome-toast';
+  toast.innerHTML = `
+    <div class="welcome-toast-content">
+      <span class="welcome-toast-icon">✦</span>
+      <span class="welcome-toast-text">恭喜成为觉醒诗社的一员！</span>
+      <span class="welcome-toast-icon">✦</span>
+    </div>
+  `;
+  document.body.appendChild(toast);
+
+  // 触发动画
+  requestAnimationFrame(() => {
+    toast.classList.add('show');
+  });
+
+  // 2秒后淡出
+  setTimeout(() => {
+    toast.classList.add('fade-out');
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    }, 600);
+  }, 2000);
+}
+
 window.AuthService = AuthService;
 window.AuthUI = AuthUI;
 window.initAuth = initAuth;
@@ -1464,6 +1567,7 @@ window.saveProfileChanges = saveProfileChanges;
 window.openPasswordResetModal = openPasswordResetModal;
 window.closePasswordResetModal = closePasswordResetModal;
 window.submitPasswordReset = submitPasswordReset;
+window.showWelcomeToast = showWelcomeToast;
 
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', initAuth);
