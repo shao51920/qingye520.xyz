@@ -29,6 +29,7 @@ let pendingRegisterNickname = '';
 let otpCooldownTimer = null;
 let otpCooldownSeconds = 0;
 const NETWORK_TIMEOUT_MS = 12000;
+const OTP_VERIFY_TIMEOUT_MS = 20000;
 const MIN_PASSWORD_LENGTH = 6;
 
 function getAuthClient() {
@@ -250,6 +251,39 @@ function withTimeout(promise, ms, message) {
   });
 }
 
+function getAuthSubmitLabel(mode = authMode) {
+  return mode === 'register' ? '验证注册' : '登录';
+}
+
+function markAuthMessage(message, success = false, targetId = 'auth-error') {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  el.textContent = message || '';
+  el.classList.toggle('is-success', Boolean(message) && success);
+}
+
+function clearAuthActionParam() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has('auth_action')) return;
+  url.searchParams.delete('auth_action');
+  window.history.replaceState({}, '', url.toString());
+}
+
+function getPasswordResetRedirectUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.set('auth_action', 'reset');
+  url.hash = '';
+  return url.toString();
+}
+
+function shouldOpenPasswordReset() {
+  try {
+    return new URL(window.location.href).searchParams.get('auth_action') === 'reset';
+  } catch (_error) {
+    return false;
+  }
+}
+
 function buildFallbackNickname(seed) {
   return `觉者${100 + (hashSeed(seed || Date.now()) % 900)}`;
 }
@@ -287,6 +321,29 @@ async function generateDefaultNickname(client) {
   }
 
   return buildFallbackNickname(Date.now());
+}
+
+async function ensureNicknameAvailable(client, nickname, excludeUserId) {
+  const trimmedNickname = String(nickname || '').trim();
+  if (!trimmedNickname) {
+    throw new Error('昵称不能为空');
+  }
+
+  const { data, error } = await client
+    .from('profiles')
+    .select('id, nickname')
+    .ilike('nickname', trimmedNickname)
+    .limit(12);
+
+  if (error) {
+    throw error;
+  }
+
+  const normalized = trimmedNickname.toLowerCase();
+  const conflict = (data || []).find((row) => row.id !== excludeUserId && String(row.nickname || '').trim().toLowerCase() === normalized);
+  if (conflict) {
+    throw new Error('昵称已存在，请换一个');
+  }
 }
 
 function buildLocalProfile(user) {
@@ -343,6 +400,9 @@ async function initAuth() {
     );
     if (session) {
       await syncProfileAfterAuth(client, session.user);
+      if (shouldOpenPasswordReset()) {
+        openPasswordResetModal();
+      }
     }
     renderAuthUI();
   } catch (err) {
@@ -350,7 +410,13 @@ async function initAuth() {
     renderAuthUI();
   }
 
-  client.auth.onAuthStateChange(async (_event, session) => {
+  client.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'PASSWORD_RECOVERY' && session?.user) {
+      await syncProfileAfterAuth(client, session.user);
+      openPasswordResetModal();
+      return;
+    }
+
     if (session) {
       await syncProfileAfterAuth(client, session.user);
     } else {
@@ -483,7 +549,10 @@ function openAuthModal() {
 
         <div class="auth-field">
           <label>密码</label>
-          <input type="password" id="auth-password" placeholder="请输入密码" required autocomplete="current-password" minlength="6">
+          <div class="auth-input-wrap">
+            <input type="password" id="auth-password" placeholder="请输入密码" required autocomplete="current-password" minlength="6">
+            <button type="button" class="auth-password-toggle" onclick="togglePasswordVisibility('auth-password', this)" aria-label="显示密码">👁</button>
+          </div>
         </div>
 
         <div class="auth-otp-row is-hidden" id="auth-otp-row">
@@ -492,6 +561,10 @@ function openAuthModal() {
             <input type="text" id="auth-code" placeholder="输入验证码" autocomplete="one-time-code" inputmode="numeric">
           </div>
           <button type="button" class="auth-otp-send-btn" id="auth-send-btn" onclick="sendRegisterOtpCode()">发送验证码</button>
+        </div>
+
+        <div class="auth-helper-row" id="auth-helper-row">
+          <button type="button" class="auth-text-link" id="auth-forgot-btn" onclick="sendPasswordResetLink()">忘记密码？</button>
         </div>
 
         <p class="auth-error" id="auth-error"></p>
@@ -526,6 +599,16 @@ function closeAuthModal() {
   otpCooldownSeconds = 0;
 }
 
+function togglePasswordVisibility(inputId, trigger) {
+  const input = document.getElementById(inputId);
+  if (!input || !trigger) return;
+
+  const showPassword = input.type === 'password';
+  input.type = showPassword ? 'text' : 'password';
+  trigger.textContent = showPassword ? '🙈' : '👁';
+  trigger.setAttribute('aria-label', showPassword ? '隐藏密码' : '显示密码');
+}
+
 function setAuthMode(mode) {
   authMode = mode === 'register' ? 'register' : 'login';
   updateAuthModalUI();
@@ -539,18 +622,20 @@ function updateAuthModalUI() {
   const passwordInput = document.getElementById('auth-password');
   const codeInput = document.getElementById('auth-code');
   const submitBtn = document.getElementById('auth-submit-btn');
+  const helperRow = document.getElementById('auth-helper-row');
   const errorEl = document.getElementById('auth-error');
-  if (!loginTab || !registerTab || !subtitle || !otpRow || !passwordInput || !codeInput || !submitBtn || !errorEl) return;
+  if (!loginTab || !registerTab || !subtitle || !otpRow || !passwordInput || !codeInput || !submitBtn || !errorEl || !helperRow) return;
 
   const registerMode = authMode === 'register';
   loginTab.classList.toggle('active', !registerMode);
   registerTab.classList.toggle('active', registerMode);
   subtitle.textContent = registerMode ? '登录后可获得更多权限' : '登录后可修改昵称';
   otpRow.classList.toggle('is-hidden', !registerMode);
+  helperRow.classList.toggle('is-hidden', registerMode);
   passwordInput.autocomplete = registerMode ? 'new-password' : 'current-password';
   codeInput.required = registerMode;
-  submitBtn.textContent = registerMode ? '验证注册' : '登录';
-  errorEl.textContent = '';
+  submitBtn.textContent = getAuthSubmitLabel();
+  markAuthMessage('');
   setOtpButtonLabel();
   updateAuthSubmitState();
 }
@@ -646,7 +731,7 @@ async function sendRegisterOtpCode() {
     return;
   }
 
-  errorEl.textContent = '';
+  markAuthMessage('');
   sendBtn.disabled = true;
   sendBtn.textContent = '发送中...';
 
@@ -670,10 +755,49 @@ async function sendRegisterOtpCode() {
 
     pendingRegisterEmail = email;
     startOtpCooldown(60);
+    markAuthMessage('验证码已发送，请查收邮箱', true);
   } catch (err) {
-    errorEl.textContent = normalizeAuthErrorMessage(err?.message || '发送验证码失败');
+    markAuthMessage(normalizeAuthErrorMessage(err?.message || '发送验证码失败'));
     otpCooldownSeconds = 0;
     setOtpButtonLabel();
+  }
+}
+
+async function sendPasswordResetLink() {
+  const client = getAuthClient();
+  const emailInput = document.getElementById('auth-email');
+  if (!client?.auth || !emailInput) return;
+
+  const email = emailInput.value.trim().toLowerCase();
+  if (!email) {
+    markAuthMessage('请先输入邮箱');
+    emailInput.focus();
+    return;
+  }
+
+  const forgotBtn = document.getElementById('auth-forgot-btn');
+  if (forgotBtn) {
+    forgotBtn.disabled = true;
+    forgotBtn.textContent = '发送中...';
+  }
+
+  try {
+    const { error } = await withTimeout(
+      client.auth.resetPasswordForEmail(email, {
+        redirectTo: getPasswordResetRedirectUrl()
+      }),
+      NETWORK_TIMEOUT_MS,
+      '发送重置链接超时'
+    );
+    if (error) throw error;
+    markAuthMessage('重置链接已发送，请查收邮箱', true);
+  } catch (err) {
+    markAuthMessage(normalizeAuthErrorMessage(err?.message || '发送重置链接失败'));
+  } finally {
+    if (forgotBtn) {
+      forgotBtn.disabled = false;
+      forgotBtn.textContent = '忘记密码？';
+    }
   }
 }
 
@@ -740,7 +864,7 @@ async function handleAuthSubmit(e) {
 
   submitBtn.disabled = true;
   submitBtn.textContent = authMode === 'register' ? '验证中...' : '登录中...';
-  errorEl.textContent = '';
+  markAuthMessage('');
 
   try {
     if (!client?.auth) {
@@ -757,15 +881,27 @@ async function handleAuthSubmit(e) {
       }
 
       const verifyEmail = pendingRegisterEmail || email;
-      const { data, error } = await withTimeout(
-        client.auth.verifyOtp({
-          email: verifyEmail,
-          token: code,
-          type: 'email'
-        }),
-        NETWORK_TIMEOUT_MS,
-        '验证码验证超时'
-      );
+      let verifyResult = null;
+      try {
+        verifyResult = await withTimeout(
+          client.auth.verifyOtp({
+            email: verifyEmail,
+            token: code,
+            type: 'email'
+          }),
+          OTP_VERIFY_TIMEOUT_MS,
+          '验证码验证超时'
+        );
+      } catch (verifyError) {
+        const { data: sessionData } = await client.auth.getSession();
+        const sessionUser = sessionData?.session?.user;
+        if (sessionUser?.id && String(sessionUser.email || '').toLowerCase() === verifyEmail) {
+          verifyResult = { data: { user: sessionUser, session: sessionData.session }, error: null };
+        } else {
+          throw verifyError;
+        }
+      }
+      const { data, error } = verifyResult || {};
       if (error) throw error;
 
       const authedUser = data?.user || data?.session?.user;
@@ -839,11 +975,11 @@ async function handleAuthSubmit(e) {
       });
     }
   } catch (err) {
-    errorEl.textContent = normalizeAuthErrorMessage(err?.message || '操作失败');
+    markAuthMessage(normalizeAuthErrorMessage(err?.message || '操作失败'));
   } finally {
     const activeSubmitBtn = document.getElementById('auth-submit-btn');
     if (activeSubmitBtn) {
-      activeSubmitBtn.textContent = authMode === 'register' ? '验证注册' : '登录';
+      activeSubmitBtn.textContent = getAuthSubmitLabel();
     }
     updateAuthSubmitState();
   }
@@ -920,9 +1056,9 @@ function openEditProfile() {
 }
 
 async function confirmLogout() {
-  if (confirm('是否退出登录？')) {
+  if (confirm('确定退出登录吗？')) {
     closeProfileModal();
-    await handleLogout();
+    handleLogout();
   }
 }
 
@@ -1002,6 +1138,8 @@ async function saveProfileChanges() {
   errorEl.textContent = '';
 
   try {
+    await ensureNicknameAvailable(client, nickname, currentUser.id);
+
     let avatarValue = normalizeAvatarValue(`emoji:${profileAvatarDraft.emoji || pickAvatarEmoji(currentUser.id)}`, currentUser.id);
 
     if (profileAvatarDraft.file) {
@@ -1064,6 +1202,79 @@ async function saveProfileChanges() {
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = '保存资料';
+  }
+}
+
+function openPasswordResetModal() {
+  const existing = document.getElementById('password-reset-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'password-reset-modal';
+  modal.className = 'auth-modal';
+  modal.innerHTML = `
+    <div class="auth-modal-backdrop" onclick="closePasswordResetModal()"></div>
+    <div class="auth-modal-content">
+      <button class="auth-modal-close" onclick="closePasswordResetModal()">✕</button>
+      <h3 class="profile-edit-title">重置密码</h3>
+      <p class="auth-modal-sub auth-modal-sub-main">请输入新的登录密码</p>
+      <div class="auth-field">
+        <label>新密码</label>
+        <div class="auth-input-wrap">
+          <input type="password" id="reset-password-input" placeholder="至少6位" autocomplete="new-password" minlength="6">
+          <button type="button" class="auth-password-toggle" onclick="togglePasswordVisibility('reset-password-input', this)" aria-label="显示密码">👁</button>
+        </div>
+      </div>
+      <p class="auth-error" id="reset-password-error"></p>
+      <button type="button" class="auth-submit-btn" id="reset-password-btn" onclick="submitPasswordReset()">保存新密码</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  requestAnimationFrame(() => modal.classList.add('show'));
+}
+
+function closePasswordResetModal() {
+  const modal = document.getElementById('password-reset-modal');
+  if (!modal) return;
+  modal.classList.remove('show');
+  setTimeout(() => modal.remove(), 300);
+}
+
+async function submitPasswordReset() {
+  const client = getAuthClient();
+  const passwordInput = document.getElementById('reset-password-input');
+  const errorEl = document.getElementById('reset-password-error');
+  const submitBtn = document.getElementById('reset-password-btn');
+  if (!client?.auth || !passwordInput || !errorEl || !submitBtn) return;
+
+  const password = passwordInput.value.trim();
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    markAuthMessage(`密码至少需要 ${MIN_PASSWORD_LENGTH} 位`, false, 'reset-password-error');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = '保存中...';
+  markAuthMessage('', false, 'reset-password-error');
+
+  try {
+    const { error } = await withTimeout(
+      client.auth.updateUser({ password }),
+      NETWORK_TIMEOUT_MS,
+      '重置密码超时'
+    );
+    if (error) throw error;
+    clearAuthActionParam();
+    closePasswordResetModal();
+    alert('密码已重置，请使用新密码登录');
+  } catch (err) {
+    markAuthMessage(normalizeAuthErrorMessage(err?.message || '重置密码失败'), false, 'reset-password-error');
+  } finally {
+    const activeBtn = document.getElementById('reset-password-btn');
+    if (activeBtn) {
+      activeBtn.disabled = false;
+      activeBtn.textContent = '保存新密码';
+    }
   }
 }
 

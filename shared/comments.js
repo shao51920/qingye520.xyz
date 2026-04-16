@@ -6,6 +6,10 @@ let commentsLoaded = false;
 let selectedImageFile = null;
 let commentsFeatureAvailable = true;
 let commentsProfileMap = {};
+let commentsState = [];
+let commentLikesMap = {};
+let activeReplyTargetId = null;
+let activeCommentsPageType = '';
 let commentRenderAuthHooked = false;
 
 function getCommentsClient() {
@@ -40,6 +44,16 @@ function isCommentsTableMissing(error) {
   return msg.includes("Could not find the table 'public.comments'") || msg.includes('PGRST205');
 }
 
+function isCommentLikesTableMissing(error) {
+  const msg = String(error?.message || '');
+  return msg.includes("Could not find the table 'public.comment_likes'") || msg.includes('PGRST205');
+}
+
+function isCommentSchemaMissing(error) {
+  const msg = String(error?.message || '');
+  return msg.includes("column of 'comments' in the schema cache") || msg.includes('PGRST204');
+}
+
 function getLiveCurrentProfile() {
   if (!currentUser) return null;
   return {
@@ -56,20 +70,7 @@ function getCommentDisplayProfile(userId) {
   return commentsProfileMap[userId] || {};
 }
 
-async function loadCommentProfiles(client, comments) {
-  const userIds = [...new Set((comments || []).map(comment => comment.user_id).filter(Boolean))];
-  commentsProfileMap = {};
-
-  if (userIds.length > 0) {
-    const { data, error } = await client
-      .from('profiles')
-      .select('*')
-      .in('id', userIds);
-
-    if (error) throw error;
-    commentsProfileMap = Object.fromEntries((data || []).map(profile => [profile.id, profile]));
-  }
-
+function ensureLiveProfileMapped() {
   const liveProfile = getLiveCurrentProfile();
   if (liveProfile?.id) {
     commentsProfileMap[liveProfile.id] = {
@@ -85,11 +86,87 @@ function renderAvatarIntoElement(elementId, avatarValue, seed, className) {
   el.outerHTML = getAvatarNodeHtml(avatarValue, seed, className).replace(`class="${className}"`, `id="${elementId}" class="${className}"`);
 }
 
+function getCommentLikeCount(commentId) {
+  return (commentLikesMap[commentId] || []).length;
+}
+
+function isCommentLikedByCurrentUser(commentId) {
+  if (!currentUser) return false;
+  return (commentLikesMap[commentId] || []).includes(currentUser.id);
+}
+
+function upsertLikeState(commentId, userId, liked) {
+  const likes = new Set(commentLikesMap[commentId] || []);
+  if (liked) {
+    likes.add(userId);
+  } else {
+    likes.delete(userId);
+  }
+  commentLikesMap[commentId] = Array.from(likes);
+}
+
+function replaceCommentInState(tempId, nextComment) {
+  commentsState = commentsState.map(comment => comment.id === tempId ? nextComment : comment);
+}
+
+function removeCommentFromState(commentId) {
+  commentsState = commentsState.filter(comment => comment.id !== commentId);
+}
+
+function getSortedVisibleComments() {
+  return commentsState
+    .filter(comment => !comment.is_hidden)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
+async function loadCommentProfiles(client, comments) {
+  const userIds = [...new Set((comments || []).map(comment => comment.user_id).filter(Boolean))];
+  commentsProfileMap = {};
+
+  if (userIds.length > 0) {
+    const { data, error } = await client
+      .from('profiles')
+      .select('*')
+      .in('id', userIds);
+
+    if (error) throw error;
+    commentsProfileMap = Object.fromEntries((data || []).map(profile => [profile.id, profile]));
+  }
+
+  ensureLiveProfileMapped();
+}
+
+async function loadCommentLikes(client, comments) {
+  const commentIds = [...new Set((comments || []).map(comment => comment.id).filter(Boolean))];
+  commentLikesMap = {};
+  if (commentIds.length === 0) return;
+
+  const { data, error } = await client
+    .from('comment_likes')
+    .select('comment_id, user_id')
+    .in('comment_id', commentIds);
+
+  if (error) {
+    if (isCommentLikesTableMissing(error)) {
+      return;
+    }
+    throw error;
+  }
+
+  for (const row of data || []) {
+    if (!commentLikesMap[row.comment_id]) {
+      commentLikesMap[row.comment_id] = [];
+    }
+    commentLikesMap[row.comment_id].push(row.user_id);
+  }
+}
+
 function initComments() {
   const container = document.getElementById('comments-section');
   if (!container) return;
 
   const pageType = container.dataset.page || 'unknown';
+  activeCommentsPageType = pageType;
 
   container.innerHTML = `
     <div class="comments-wrapper">
@@ -147,6 +224,10 @@ function initComments() {
     renderAuthUI = function () {
       originalRenderAuthUI();
       updateCommentInputState();
+      if (commentsLoaded) {
+        ensureLiveProfileMapped();
+        renderCommentsList();
+      }
     };
     commentRenderAuthHooked = true;
   }
@@ -162,7 +243,7 @@ function updateCommentInputState() {
 
   if (!commentsFeatureAvailable) {
     loginHint.style.display = 'flex';
-    loginHint.innerHTML = '<p>评论功能尚未初始化，请先创建 comments 表。</p>';
+    loginHint.innerHTML = '<p>评论功能尚未初始化，请先执行评论升级 SQL。</p>';
     inputBox.style.display = 'none';
     return;
   }
@@ -173,9 +254,7 @@ function updateCommentInputState() {
     inputBox.style.display = 'block';
 
     const username = document.getElementById('comment-username');
-    if (username) {
-      username.textContent = liveProfile?.nickname || '用户';
-    }
+    if (username) username.textContent = liveProfile?.nickname || '用户';
     renderAvatarIntoElement('comment-avatar', liveProfile?.avatar_url, currentUser.id, 'comment-avatar');
   } else {
     loginHint.style.display = 'flex';
@@ -186,39 +265,34 @@ function updateCommentInputState() {
 async function loadComments(pageType) {
   const client = getCommentsClient();
   const listEl = document.getElementById('comments-list');
-  const countEl = document.getElementById('comments-count');
   if (!client || !listEl) return;
 
+  activeCommentsPageType = pageType;
+  listEl.innerHTML = '<div class="comments-loading">加载评论中...</div>';
+
   try {
-    const { data: comments, error } = await client
+    const { data, error } = await client
       .from('comments')
       .select('*')
       .eq('page_type', pageType)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(120);
 
     if (error) throw error;
 
     commentsFeatureAvailable = true;
-    await loadCommentProfiles(client, comments || []);
-
-    if (countEl) {
-      countEl.textContent = `${(comments || []).length} 条评论`;
-    }
-
-    if (!comments || comments.length === 0) {
-      listEl.innerHTML = '<p class="comments-empty">还没有评论，来做第一个留下想法的人。</p>';
-      return;
-    }
-
-    listEl.innerHTML = comments.map(comment => renderComment(comment)).join('');
+    commentsState = data || [];
+    await loadCommentProfiles(client, commentsState);
+    await loadCommentLikes(client, commentsState);
     commentsLoaded = true;
+    renderCommentsList();
   } catch (err) {
     console.error('加载评论失败:', err);
-    if (isCommentsTableMissing(err)) {
+    if (isCommentsTableMissing(err) || isCommentSchemaMissing(err)) {
       commentsFeatureAvailable = false;
+      listEl.innerHTML = '<p class="comments-empty">评论功能未完成升级，请先执行 SQL 脚本。</p>';
+      const countEl = document.getElementById('comments-count');
       if (countEl) countEl.textContent = '未启用';
-      listEl.innerHTML = '<p class="comments-empty">评论表未创建，评论功能暂不可用。</p>';
       updateCommentInputState();
       return;
     }
@@ -226,7 +300,63 @@ async function loadComments(pageType) {
   }
 }
 
-function renderComment(comment) {
+function renderCommentsList() {
+  const listEl = document.getElementById('comments-list');
+  const countEl = document.getElementById('comments-count');
+  if (!listEl) return;
+
+  const visibleComments = getSortedVisibleComments();
+  const rootComments = visibleComments.filter(comment => !comment.parent_comment_id);
+
+  if (countEl) {
+    countEl.textContent = `${visibleComments.length} 条留言`;
+  }
+
+  if (rootComments.length === 0) {
+    listEl.innerHTML = '<p class="comments-empty">还没有评论，来做第一个留下想法的人。</p>';
+    return;
+  }
+
+  listEl.innerHTML = rootComments.map(comment => renderCommentThread(comment)).join('');
+}
+
+function renderCommentThread(comment) {
+  const replies = commentsState
+    .filter(item => item.parent_comment_id === comment.id && !item.is_hidden)
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+  return `
+    <div class="comment-thread" id="comment-thread-${comment.id}">
+      ${renderSingleComment(comment, false)}
+      ${replies.length ? `<div class="comment-replies">${replies.map(reply => renderSingleComment(reply, true)).join('')}</div>` : ''}
+      ${renderReplyComposer(comment.id, comment.page_type)}
+    </div>
+  `;
+}
+
+function renderReplyComposer(commentId, pageType) {
+  if (activeReplyTargetId !== commentId) return '';
+
+  if (!currentUser) {
+    return `
+      <div class="comment-reply-panel comment-reply-login">
+        <button class="comment-inline-link" onclick="openAuthModal()">登录后回复</button>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="comment-reply-panel">
+      <textarea class="comment-reply-text" id="reply-text-${commentId}" placeholder="回复这条留言..." maxlength="300" rows="2"></textarea>
+      <div class="comment-reply-actions">
+        <button class="comment-inline-link" onclick="toggleReplyComposer('${commentId}')">取消</button>
+        <button class="comment-submit-btn comment-reply-submit" id="reply-submit-${commentId}" onclick="submitReply('${pageType}', '${commentId}')">回复</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderSingleComment(comment, isReply) {
   const profile = getCommentDisplayProfile(comment.user_id);
   const name = profile.nickname || '匿名用户';
   const avatarValue = profile.avatar_url || getProfileAvatarValue(profile);
@@ -237,33 +367,83 @@ function renderComment(comment) {
     minute: '2-digit'
   });
   const isOwner = Boolean(currentUser && comment.user_id === currentUser.id);
+  const likedByCurrentUser = isCommentLikedByCurrentUser(comment.id);
+  const likeCount = getCommentLikeCount(comment.id);
   const imageHtml = comment.image_url
     ? `<div class="comment-img-wrap"><img src="${escapeAttr(comment.image_url)}" alt="评论图片" onclick="openCommentImage(this.src)" loading="lazy"></div>`
     : '';
   const deleteBtn = isOwner ? `<button class="comment-delete-btn" onclick="deleteComment('${comment.id}', '${comment.page_type}')">删除</button>` : '';
   const avatarHtml = getAvatarNodeHtml(avatarValue, comment.user_id || 'guest', 'comment-item-avatar');
+  const optimisticBadge = comment.is_optimistic ? '<span class="comment-pending-badge">发送中</span>' : '';
 
   return `
-    <div class="comment-item" id="comment-${comment.id}">
+    <div class="comment-item${isReply ? ' comment-item-reply' : ''}" id="comment-${comment.id}">
       ${avatarHtml}
       <div class="comment-item-body">
         <div class="comment-item-header">
           <span class="comment-item-name">${escapeHtml(name)}</span>
           <span class="comment-item-time">${time}</span>
+          ${optimisticBadge}
           ${deleteBtn}
         </div>
         <p class="comment-item-text">${escapeHtml(comment.content || '')}</p>
         ${imageHtml}
+        <div class="comment-item-actions">
+          <button class="comment-action-btn${likedByCurrentUser ? ' active' : ''}" onclick="toggleCommentLike('${comment.id}')">
+            <span>❤</span>
+            <span>${likeCount}</span>
+          </button>
+          <button class="comment-action-btn" onclick="toggleReplyComposer('${comment.id}')">回复</button>
+        </div>
       </div>
     </div>
   `;
 }
 
+function toggleReplyComposer(commentId) {
+  activeReplyTargetId = activeReplyTargetId === commentId ? null : commentId;
+  renderCommentsList();
+}
+
 async function submitComment(pageType) {
+  const submitBtn = document.getElementById('comment-submit-btn');
+  const textEl = document.getElementById('comment-text');
+  await submitCommentInternal({
+    pageType,
+    parentCommentId: null,
+    inputEl: textEl,
+    submitBtn,
+    allowImage: true,
+    onSuccess() {
+      selectedImageFile = null;
+      removeImagePreview();
+      const counter = document.getElementById('comment-char');
+      if (counter) counter.textContent = '0';
+    }
+  });
+}
+
+async function submitReply(pageType, parentCommentId) {
+  const inputEl = document.getElementById(`reply-text-${parentCommentId}`);
+  const submitBtn = document.getElementById(`reply-submit-${parentCommentId}`);
+  await submitCommentInternal({
+    pageType,
+    parentCommentId,
+    inputEl,
+    submitBtn,
+    allowImage: false,
+    onSuccess() {
+      activeReplyTargetId = null;
+    }
+  });
+}
+
+async function submitCommentInternal({ pageType, parentCommentId, inputEl, submitBtn, allowImage, onSuccess }) {
   const client = getCommentsClient();
-  if (!client) return;
+  if (!client || !inputEl || !submitBtn) return;
+
   if (!commentsFeatureAvailable) {
-    alert('评论表尚未创建，当前无法发布评论。');
+    alert('评论功能未完成升级，请先执行 SQL 脚本。');
     return;
   }
 
@@ -272,20 +452,38 @@ async function submitComment(pageType) {
     return;
   }
 
-  const textEl = document.getElementById('comment-text');
-  const submitBtn = document.getElementById('comment-submit-btn');
-  if (!textEl || !submitBtn) return;
+  const content = inputEl.value.trim();
+  const hasImage = Boolean(allowImage && selectedImageFile);
+  if (!content && !hasImage) return;
 
-  const content = textEl.value.trim();
-  if (!content && !selectedImageFile) return;
+  const originalText = inputEl.value;
+  const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const optimisticComment = {
+    id: tempId,
+    user_id: currentUser.id,
+    page_type: pageType,
+    content,
+    image_url: null,
+    parent_comment_id: parentCommentId || null,
+    is_hidden: false,
+    created_at: new Date().toISOString(),
+    is_optimistic: !hasImage
+  };
 
   submitBtn.disabled = true;
-  submitBtn.textContent = '发布中...';
+  submitBtn.textContent = parentCommentId ? '回复中...' : '发布中...';
+
+  if (!hasImage) {
+    ensureLiveProfileMapped();
+    commentsState = [optimisticComment, ...commentsState];
+    renderCommentsList();
+    inputEl.value = '';
+  }
 
   try {
     let imageUrl = null;
 
-    if (selectedImageFile) {
+    if (hasImage) {
       const fileExt = selectedImageFile.name.split('.').pop() || 'png';
       const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`;
       const { error: uploadError } = await client.storage
@@ -297,34 +495,85 @@ async function submitComment(pageType) {
       imageUrl = urlData.publicUrl;
     }
 
-    const { error } = await client.from('comments').insert({
+    const payload = {
       user_id: currentUser.id,
       page_type: pageType,
       content: content || '',
-      image_url: imageUrl
-    });
+      image_url: imageUrl,
+      parent_comment_id: parentCommentId || null
+    };
+
+    const { data, error } = await client
+      .from('comments')
+      .insert(payload)
+      .select('*')
+      .single();
+
     if (error) throw error;
 
-    const liveProfile = getLiveCurrentProfile();
-    if (liveProfile?.id) {
-      commentsProfileMap[liveProfile.id] = {
-        ...(commentsProfileMap[liveProfile.id] || {}),
-        ...liveProfile
-      };
+    ensureLiveProfileMapped();
+    if (hasImage) {
+      commentsState = [data, ...commentsState];
+      inputEl.value = '';
+    } else {
+      replaceCommentInState(tempId, data);
     }
 
-    textEl.value = '';
-    const counter = document.getElementById('comment-char');
-    if (counter) counter.textContent = '0';
-    removeImagePreview();
-
-    await loadComments(pageType);
+    if (typeof onSuccess === 'function') onSuccess();
+    renderCommentsList();
   } catch (err) {
+    if (!hasImage) {
+      removeCommentFromState(tempId);
+      inputEl.value = originalText;
+      renderCommentsList();
+    }
     console.error('发布失败:', err);
-    alert(`发布失败: ${err.message || '未知错误'}`);
+    if (isCommentSchemaMissing(err)) {
+      alert('评论功能未完成升级，请先执行 supabase-community-upgrade.sql。');
+    } else {
+      alert(`发布失败: ${err.message || '未知错误'}`);
+    }
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = '发布';
+    submitBtn.textContent = parentCommentId ? '回复' : '发布';
+  }
+}
+
+async function toggleCommentLike(commentId) {
+  const client = getCommentsClient();
+  if (!client) return;
+  if (!currentUser) {
+    openAuthModal();
+    return;
+  }
+
+  const liked = isCommentLikedByCurrentUser(commentId);
+  upsertLikeState(commentId, currentUser.id, !liked);
+  renderCommentsList();
+
+  try {
+    if (liked) {
+      const { error } = await client
+        .from('comment_likes')
+        .delete()
+        .eq('comment_id', commentId)
+        .eq('user_id', currentUser.id);
+      if (error) throw error;
+    } else {
+      const { error } = await client
+        .from('comment_likes')
+        .insert({ comment_id: commentId, user_id: currentUser.id });
+      if (error) throw error;
+    }
+  } catch (err) {
+    upsertLikeState(commentId, currentUser.id, liked);
+    renderCommentsList();
+    console.error('点赞失败:', err);
+    if (isCommentLikesTableMissing(err)) {
+      alert('点赞功能未完成升级，请先执行 supabase-community-upgrade.sql。');
+    } else {
+      alert(`点赞失败: ${err.message || '未知错误'}`);
+    }
   }
 }
 
@@ -333,12 +582,18 @@ async function deleteComment(commentId, pageType) {
   if (!client || !commentsFeatureAvailable) return;
 
   if (!confirm('确定删除这条评论？')) return;
+
+  const snapshot = [...commentsState];
+  commentsState = commentsState.filter(comment => comment.id !== commentId && comment.parent_comment_id !== commentId);
+  renderCommentsList();
+
   try {
     const { error } = await client.from('comments').delete().eq('id', commentId);
     if (error) throw error;
-    await loadComments(pageType);
-  } catch (_error) {
-    alert('删除失败');
+  } catch (err) {
+    commentsState = snapshot;
+    renderCommentsList();
+    alert(`删除失败: ${err.message || '未知错误'}`);
   }
 }
 
