@@ -163,6 +163,7 @@
 .comment-item-actions {
   margin-top: 10px;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .comment-upload-btn {
@@ -224,20 +225,27 @@
 
 .comment-inline-link,
 .comment-action-btn {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--comments-muted, rgba(255, 255, 255, 0.62));
-  padding: 5px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+  padding: 5px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .comment-inline-link:hover,
 .comment-action-btn:hover {
   color: #fff;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .comment-action-btn.active {
   color: #ffd6df;
   background: rgba(244, 114, 182, 0.16);
+  border-color: rgba(244, 114, 182, 0.32);
 }
 
 .comment-reply-submit {

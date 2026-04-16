@@ -396,7 +396,7 @@ function renderSingleComment(comment, isReply) {
         <div class="comment-item-actions">
           <button class="comment-action-btn${likedByCurrentUser ? ' active' : ''}" onclick="toggleCommentLike('${comment.id}')">
             <span>❤</span>
-            <span>${likeCount}</span>
+            <span>点赞 ${likeCount}</span>
           </button>
           <button class="comment-action-btn" onclick="toggleReplyComposer('${comment.id}')">回复</button>
         </div>
