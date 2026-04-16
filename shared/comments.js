@@ -12,6 +12,11 @@ let activeReplyTargetId = null;
 let activeCommentsPageType = '';
 let commentRenderAuthHooked = false;
 
+// 分页配置
+const COMMENTS_PAGE_SIZE = 10;
+let commentsCurrentPage = 1;
+let commentsTotalCount = 0;
+
 function getCommentsClient() {
   if (window.supabaseClient && typeof window.supabaseClient.from === 'function') return window.supabaseClient;
   if (window.db && typeof window.db.from === 'function') return window.db;
@@ -122,6 +127,40 @@ function getSortedVisibleComments() {
   return commentsState
     .filter(comment => !comment.is_hidden)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
+// 计算评论的嵌套层级
+function getCommentLevel(comment) {
+  let level = 0;
+  let current = comment;
+  while (current.parent_comment_id) {
+    level++;
+    current = commentsState.find(c => c.id === current.parent_comment_id);
+    if (!current) break;
+  }
+  return level;
+}
+
+// 获取评论的所有回复（包括嵌套回复，限制3层）
+function getCommentReplies(parentId, maxLevel = 3) {
+  const result = [];
+  const directReplies = commentsState
+    .filter(item => item.parent_comment_id === parentId && !item.is_hidden)
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  
+  for (const reply of directReplies) {
+    const level = getCommentLevel(reply);
+    if (level < maxLevel) {
+      result.push({ ...reply, _level: level });
+      // 递归获取子回复
+      const subReplies = getCommentReplies(reply.id, maxLevel);
+      result.push(...subReplies);
+    } else {
+      // 超过3层，归入最近一层展示
+      result.push({ ...reply, _level: maxLevel - 1, _flattened: true });
+    }
+  }
+  return result;
 }
 
 async function loadCommentProfiles(client, comments) {
@@ -312,6 +351,7 @@ function renderCommentsList() {
 
   const visibleComments = getSortedVisibleComments();
   const rootComments = visibleComments.filter(comment => !comment.parent_comment_id);
+  commentsTotalCount = rootComments.length;
 
   if (countEl) {
     countEl.textContent = `${visibleComments.length} 条留言`;
@@ -322,27 +362,45 @@ function renderCommentsList() {
     return;
   }
 
-  listEl.innerHTML = rootComments.map(comment => renderCommentThread(comment)).join('');
+  // 分页：只显示当前页的评论
+  const startIndex = 0;
+  const endIndex = commentsCurrentPage * COMMENTS_PAGE_SIZE;
+  const paginatedComments = rootComments.slice(startIndex, endIndex);
+  const hasMore = endIndex < rootComments.length;
+
+  const commentsHtml = paginatedComments.map(comment => renderCommentThread(comment)).join('');
+  const loadMoreHtml = hasMore ? `
+    <div class="comments-load-more">
+      <button class="comment-load-more-btn" onclick="loadMoreComments()">
+        加载更多 (${rootComments.length - endIndex} 条)
+      </button>
+    </div>
+  ` : '';
+
+  listEl.innerHTML = commentsHtml + loadMoreHtml;
+}
+
+function loadMoreComments() {
+  commentsCurrentPage++;
+  renderCommentsList();
 }
 
 function renderCommentThread(comment) {
-  const replies = commentsState
-    .filter(item => item.parent_comment_id === comment.id && !item.is_hidden)
-    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-
-  const replyCount = replies.length;
+  // 获取所有层级的回复（限制3层）
+  const allReplies = getCommentReplies(comment.id, 3);
+  const replyCount = allReplies.length;
   const isExpanded = activeReplyTargetId === comment.id || comment._repliesExpanded;
 
   return `
     <div class="comment-thread" id="comment-thread-${comment.id}">
-      ${renderSingleComment(comment, false, replyCount)}
+      ${renderSingleComment(comment, 0, replyCount)}
       ${replyCount > 0 ? `
         <div class="comment-replies-toggle" onclick="toggleReplies('${comment.id}')">
           <span class="replies-toggle-icon ${isExpanded ? 'expanded' : ''}">▼</span>
           <span>${replyCount} 条回复</span>
         </div>
         <div class="comment-replies ${isExpanded ? 'expanded' : 'collapsed'}">
-          ${replies.map(reply => renderSingleComment(reply, true)).join('')}
+          ${allReplies.map(reply => renderSingleComment(reply, reply._level || 1, 0, reply._flattened)).join('')}
         </div>
       ` : ''}
       ${renderReplyComposer(comment.id, comment.page_type)}
@@ -380,7 +438,7 @@ function renderReplyComposer(commentId, pageType) {
   `;
 }
 
-function renderSingleComment(comment, isReply, replyCount) {
+function renderSingleComment(comment, level = 0, replyCount = 0, isFlattened = false) {
   const profile = getCommentDisplayProfile(comment.user_id);
   const name = profile.nickname || '匿名用户';
   const avatarValue = profile.avatar_url || getProfileAvatarValue(profile);
@@ -399,9 +457,16 @@ function renderSingleComment(comment, isReply, replyCount) {
   const deleteBtn = isOwner ? `<button class="comment-delete-btn" onclick="deleteComment('${comment.id}', '${comment.page_type}')">删除</button>` : '';
   const avatarHtml = getAvatarNodeHtml(avatarValue, comment.user_id || 'guest', 'comment-item-avatar');
   const optimisticBadge = comment.is_optimistic ? '<span class="comment-pending-badge">发送中</span>' : '';
+  
+  // 处理 @提及高亮
+  const contentHtml = highlightMentions(escapeHtml(comment.content || ''));
+  
+  // 根据层级设置类名
+  const levelClass = level > 0 ? ` comment-item-level-${Math.min(level, 3)}` : '';
+  const flattenedClass = isFlattened ? ' comment-item-flattened' : '';
 
   return `
-    <div class="comment-item${isReply ? ' comment-item-reply' : ''}" id="comment-${comment.id}">
+    <div class="comment-item${levelClass}${flattenedClass}" id="comment-${comment.id}" data-level="${level}">
       ${avatarHtml}
       <div class="comment-item-body">
         <div class="comment-item-header">
@@ -410,7 +475,7 @@ function renderSingleComment(comment, isReply, replyCount) {
           ${optimisticBadge}
           ${deleteBtn}
         </div>
-        <p class="comment-item-text">${escapeHtml(comment.content || '')}</p>
+        <p class="comment-item-text">${contentHtml}</p>
         ${imageHtml}
         <div class="comment-item-actions">
           <button class="comment-action-btn comment-like-btn${likedByCurrentUser ? ' active' : ''}" onclick="toggleCommentLike('${comment.id}')" title="${likeCount > 0 ? likeCount + ' 人点赞' : '点赞'}">
@@ -429,6 +494,13 @@ function renderSingleComment(comment, isReply, replyCount) {
       </div>
     </div>
   `;
+}
+
+// @提及高亮处理
+function highlightMentions(text) {
+  if (!text) return '';
+  // 匹配 @用户名 格式（支持中文、英文、数字、下划线）
+  return text.replace(/@([\u4e00-\u9fa5a-zA-Z0-9_]+)/g, '<span class="comment-mention">@$1</span>');
 }
 
 function toggleReplyComposer(commentId) {
