@@ -889,14 +889,8 @@
         // 清除参数
         url.searchParams.delete('welcome');
         window.history.replaceState({}, '', url.toString());
-        // 延迟显示欢迎提示，等待页面完全加载
-        document.addEventListener('DOMContentLoaded', () => {
-          setTimeout(() => {
-            if (typeof showWelcomeToast === 'function') {
-              showWelcomeToast();
-            }
-          }, 500);
-        });
+        // 标记需要显示欢迎提示
+        window._showWelcomeToastPending = true;
       }
     })();
 
@@ -1146,6 +1140,14 @@
         greetingEl.innerHTML = `你好，欢迎<span class="home-auth-login-trigger" onclick="openAuthModal()">登录</span>`;
       }
     };
+
+    // 检查是否需要显示欢迎提示（在auth.js加载后执行）
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window._showWelcomeToastPending && typeof showWelcomeToast === 'function') {
+        setTimeout(() => showWelcomeToast(), 500);
+        window._showWelcomeToastPending = false;
+      }
+    });
   </script>
 </body>
 
