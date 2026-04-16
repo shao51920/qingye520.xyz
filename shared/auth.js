@@ -212,9 +212,9 @@ async function upsertProfileCompat(client, basePayload, avatarValue, seed) {
   throw error;
 }
 
-async function updateProfileCompat(client, userId, nickname, avatarValue, seed) {
+async function updateProfileCompat(client, userId, nickname, avatarValue, seed, bio = '') {
   const field = await resolveProfileAvatarField(client);
-  const payload = { nickname };
+  const payload = { nickname, bio };
   if (field) payload[field] = getAvatarStorageValue(field, avatarValue, seed);
 
   const { error } = await client.from('profiles').update(payload).eq('id', userId);
@@ -223,7 +223,7 @@ async function updateProfileCompat(client, userId, nickname, avatarValue, seed) 
   if (field && isMissingProfilesColumnError(error)) {
     profileAvatarFieldResolved = false;
     resolvedProfileAvatarField = null;
-    const retryPayload = { nickname };
+    const retryPayload = { nickname, bio };
     const { error: retryError } = await client.from('profiles').update(retryPayload).eq('id', userId);
     if (retryError) throw retryError;
     return;
@@ -376,6 +376,12 @@ const AuthTemplates = {
         <div class="auth-field">
           <label>昵称</label>
           <input type="text" id="profile-nickname" maxlength="20" value="${escapeAttr(currentProfile?.nickname || '')}">
+        </div>
+
+        <div class="auth-field">
+          <label>个人简介</label>
+          <textarea id="profile-bio" maxlength="100" rows="3" placeholder="写点什么介绍自己...">${escapeAttr(currentProfile?.bio || '')}</textarea>
+          <span class="auth-field-hint">最多100字</span>
         </div>
 
         <div class="profile-emoji-grid" id="profile-emoji-grid">
@@ -724,7 +730,7 @@ const AuthService = (() => {
     }
   }
 
-  async function saveProfile(nickname) {
+  async function saveProfile(nickname, bio = '') {
     const client = getAuthClient();
     if (!client || !currentUser) throw new Error('用户未登录');
 
@@ -756,15 +762,25 @@ const AuthService = (() => {
         ...((currentUser && currentUser.user_metadata) || {}),
         nickname: nextNickname,
         avatar_url: avatarValue,
-        avatar_emoji: avatarEmoji
+        avatar_emoji: avatarEmoji,
+        bio: bio
       }
     };
-    currentProfile = { ...(currentProfile || {}), nickname: nextNickname, avatar_url: avatarValue, id: currentUser.id };
+    currentProfile = { ...(currentProfile || {}), nickname: nextNickname, avatar_url: avatarValue, bio: bio, id: currentUser.id };
     notify('profile-saved-local');
+    
+    // 触发评论区更新，同步显示最新头像昵称和简介
+    if (typeof window !== 'undefined' && window.updateCommentsProfile) {
+      window.updateCommentsProfile(currentUser.id, {
+        nickname: nextNickname,
+        avatar_url: avatarValue,
+        bio: bio
+      });
+    }
 
     Promise.allSettled([
       withTimeout(
-        updateProfileCompat(client, currentUser.id, nextNickname, avatarValue, currentUser.id),
+        updateProfileCompat(client, currentUser.id, nextNickname, avatarValue, currentUser.id, bio),
         NETWORK_TIMEOUT_MS,
         '保存资料超时'
       ),
@@ -773,7 +789,8 @@ const AuthService = (() => {
           data: {
             nickname: nextNickname,
             avatar_url: avatarValue,
-            avatar_emoji: avatarEmoji
+            avatar_emoji: avatarEmoji,
+            bio: bio
           }
         }),
         NETWORK_TIMEOUT_MS,
@@ -1456,6 +1473,7 @@ function handleProfileAvatarFile(input) {
 
 async function saveProfileChanges() {
   const nicknameInput = document.getElementById('profile-nickname');
+  const bioInput = document.getElementById('profile-bio');
   const saveBtn = document.getElementById('profile-save-btn');
   const errorEl = document.getElementById('profile-edit-error');
   if (!nicknameInput || !saveBtn || !errorEl) return;
@@ -1465,7 +1483,8 @@ async function saveProfileChanges() {
 
   try {
     const nickname = nicknameInput.value.trim() || currentProfile?.nickname || buildFallbackNickname(currentUser?.id);
-    await AuthService.saveProfile(nickname);
+    const bio = bioInput?.value?.trim() || '';
+    await AuthService.saveProfile(nickname, bio);
     closeProfileModal();
   } catch (err) {
     errorEl.textContent = normalizeAuthErrorMessage(err?.message || '保存失败');

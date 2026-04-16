@@ -819,7 +819,133 @@
   .comment-img-wrap img {
     max-width: 100%;
   }
+}
 
+/* 用户简介弹窗 */
+.user-profile-popup-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.user-profile-popup-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  pointer-events: auto;
+}
+
+.user-profile-popup {
+  position: relative;
+  background: var(--comments-bg, rgba(255, 255, 255, 0.95));
+  border: 1px solid var(--comments-border, rgba(255, 255, 255, 0.1));
+  border-radius: 16px;
+  padding: 24px;
+  min-width: 240px;
+  max-width: 320px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  animation: popupFadeIn 0.2s ease;
+}
+
+@keyframes popupFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.user-profile-popup-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--comments-muted, rgba(255, 255, 255, 0.5));
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.user-profile-popup-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--comments-text, rgba(255, 255, 255, 0.9));
+}
+
+.user-profile-popup-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-profile-popup-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--comments-accent, #a78bfa) 15%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+
+.user-profile-popup-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-profile-popup-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--comments-heading, rgba(255, 255, 255, 0.95));
+}
+
+.user-profile-popup-bio {
+  font-size: 0.9rem;
+  color: var(--comments-text, rgba(255, 255, 255, 0.7));
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* 昵称可点击样式 */
+.comment-item-name {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.comment-item-name:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+  text-decoration-color: var(--comments-accent, rgba(167, 139, 250, 0.5));
+  text-underline-offset: 2px;
+}
+
+@media (max-width: 640px) {
   /* 移动端加载更多按钮 */
   .comment-load-more-btn {
     padding: 8px 20px;

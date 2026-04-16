@@ -90,6 +90,31 @@ function ensureLiveProfileMapped() {
   }
 }
 
+// 全局函数：更新指定用户的评论区资料（用于资料修改后同步）
+window.updateCommentsProfile = function(userId, profileData) {
+  if (!userId || !profileData) return;
+  
+  // 更新 profile map
+  commentsProfileMap[userId] = {
+    ...(commentsProfileMap[userId] || {}),
+    ...profileData,
+    id: userId
+  };
+  
+  // 如果是当前用户，同时更新 currentProfile
+  if (currentUser?.id === userId && typeof currentProfile !== 'undefined') {
+    currentProfile = { ...(currentProfile || {}), ...profileData };
+  }
+  
+  // 重新渲染评论区
+  if (commentsLoaded) {
+    renderCommentsList();
+  }
+  
+  // 更新输入框状态
+  updateCommentInputState();
+};
+
 // 设置 auth UI hook，确保在登录状态变化时更新评论区
 function setupCommentAuthHook() {
   if (commentRenderAuthHooked) return;
@@ -489,9 +514,8 @@ function renderCommentTree(comment, level = 0, maxLevel = 3) {
     return `
       <div class="comment-nested-wrapper">
         ${renderSingleComment(comment, currentLevel, hasReplies ? directReplies.length : 0, false, true)}
-        ${renderReplyComposer(comment.id, comment.page_type)}
         ${hasReplies ? `
-          <div class="comment-nested-replies-toggle" onclick="toggleNestedReplies('${comment.id}')">
+          <div class="comment-nested-replies-toggle level-1-toggle" onclick="toggleNestedReplies('${comment.id}')">
             <span class="replies-toggle-icon ${isExpanded ? 'expanded' : ''}">▼</span>
             <span>${directReplies.length} 条回复</span>
           </div>
@@ -499,6 +523,7 @@ function renderCommentTree(comment, level = 0, maxLevel = 3) {
             ${directReplies.map(reply => renderCommentTree(reply, currentLevel + 1, maxLevel)).join('')}
           </div>
         ` : ''}
+        ${renderReplyComposer(comment.id, comment.page_type)}
       </div>
     `;
   }
@@ -603,7 +628,7 @@ function renderSingleComment(comment, level = 0, replyCount = 0, isFlattened = f
       ${avatarHtml}
       <div class="comment-item-body">
         <div class="comment-item-header">
-          <span class="comment-item-name">${escapeHtml(name)}</span>
+          <span class="comment-item-name" onclick="showUserProfilePopup('${comment.user_id}')" title="点击查看个人简介">${escapeHtml(name)}</span>
           <span class="comment-item-time">${time}</span>
           ${optimisticBadge}
           ${deleteBtn}
@@ -630,6 +655,58 @@ function highlightMentions(text) {
   if (!text) return '';
   // 匹配 @用户名 格式（支持中文、英文、数字、下划线）
   return text.replace(/@([\u4e00-\u9fa5a-zA-Z0-9_]+)/g, '<span class="comment-mention">@$1</span>');
+}
+
+// 显示用户简介弹窗
+function showUserProfilePopup(userId) {
+  if (!userId) return;
+  
+  const profile = commentsProfileMap[userId] || {};
+  const isCurrentUser = currentUser?.id === userId;
+  
+  // 如果点击的是当前用户，使用最新的 currentProfile
+  const liveProfile = isCurrentUser && currentProfile ? currentProfile : profile;
+  
+  const name = liveProfile.nickname || '匿名用户';
+  const avatarValue = liveProfile.avatar_url || '';
+  const bio = liveProfile.bio || '这个人很懒，还没有写简介~';
+  
+  // 创建弹窗
+  const popupId = 'user-profile-popup-' + Date.now();
+  const popupHtml = `
+    <div class="user-profile-popup-backdrop" onclick="closeUserProfilePopup('${popupId}')"></div>
+    <div class="user-profile-popup" id="${popupId}">
+      <button class="user-profile-popup-close" onclick="closeUserProfilePopup('${popupId}')">✕</button>
+      <div class="user-profile-popup-content">
+        <div class="user-profile-popup-avatar">${getAvatarNodeHtml(avatarValue, userId, 'popup-avatar')}</div>
+        <div class="user-profile-popup-name">${escapeHtml(name)}</div>
+        <div class="user-profile-popup-bio">${escapeHtml(bio)}</div>
+      </div>
+    </div>
+  `;
+  
+  // 添加到页面
+  const wrapper = document.createElement('div');
+  wrapper.className = 'user-profile-popup-wrapper';
+  wrapper.id = popupId + '-wrapper';
+  wrapper.innerHTML = popupHtml;
+  document.body.appendChild(wrapper);
+  
+  // 点击背景关闭
+  setTimeout(() => {
+    const backdrop = wrapper.querySelector('.user-profile-popup-backdrop');
+    if (backdrop) {
+      backdrop.addEventListener('click', () => closeUserProfilePopup(popupId));
+    }
+  }, 0);
+}
+
+// 关闭用户简介弹窗
+function closeUserProfilePopup(popupId) {
+  const wrapper = document.getElementById(popupId + '-wrapper');
+  if (wrapper) {
+    wrapper.remove();
+  }
 }
 
 function toggleReplyComposer(commentId) {
