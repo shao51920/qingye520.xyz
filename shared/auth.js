@@ -1,4 +1,4 @@
-﻿/*  ==============================
+/*  ==============================
     Auth Module 鈥?鐧诲綍 / 娉ㄥ唽 / 鐢ㄦ埛鐘舵€?
     ==============================  */
 
@@ -384,13 +384,10 @@ const AuthTemplates = {
         </div>
 
         <div class="profile-emoji-grid" id="profile-emoji-grid">
-          ${AVATAR_EMOJIS.slice(0, 10).map((emoji) => `
-            <button type="button" class="profile-emoji-option${emoji === profileAvatarDraft.emoji ? ' active' : ''}" onclick="selectProfileEmoji('${emoji}')">${emoji}</button>
-          `).join('')}
-        </div>
-        <div class="profile-emoji-grid-collapsed" id="profile-emoji-grid-collapsed" style="display:none;">
-          ${AVATAR_EMOJIS.slice(10).map((emoji) => `
-            <button type="button" class="profile-emoji-option${emoji === profileAvatarDraft.emoji ? ' active' : ''}" onclick="selectProfileEmoji('${emoji}')">${emoji}</button>
+          ${AVATAR_EMOJIS.map((emoji, index) => `
+            <button type="button" class="profile-emoji-option${emoji === profileAvatarDraft.emoji ? ' active' : ''}${index >= 12 ? ' is-extra' : ''}" 
+              style="${index >= 12 ? 'display:none' : ''}"
+              onclick="selectProfileEmoji('${emoji}')">${emoji}</button>
           `).join('')}
         </div>
         <button type="button" class="profile-emoji-toggle" id="profile-emoji-toggle" onclick="toggleEmojiGrid()">展开更多</button>
@@ -399,6 +396,15 @@ const AuthTemplates = {
           上传头像图片
           <input type="file" id="profile-avatar-file" accept="image/*" onchange="handleProfileAvatarFile(this)">
         </label>
+
+        <div class="profile-extra-actions">
+           <button type="button" class="profile-comment-jump-btn" onclick="jumpToMyComments()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            查看我的评论
+          </button>
+        </div>
 
         <p class="auth-error" id="profile-edit-error"></p>
         <button type="button" class="auth-submit-btn" id="profile-save-btn" onclick="saveProfileChanges()">保存资料</button>
@@ -783,7 +789,7 @@ const AuthService = (() => {
       });
     }
 
-    Promise.allSettled([
+    const results = await Promise.allSettled([
       withTimeout(
         updateProfileCompat(client, currentUser.id, nextNickname, avatarValue, currentUser.id, bio),
         NETWORK_TIMEOUT_MS,
@@ -801,12 +807,13 @@ const AuthService = (() => {
         NETWORK_TIMEOUT_MS,
         '更新用户元数据超时'
       )
-    ]).then((results) => {
-      const rejected = results.find((result) => result.status === 'rejected');
-      if (rejected) {
-        console.error('资料同步失败:', rejected.reason);
-      }
-    });
+    ]);
+    
+    const rejected = results.find((result) => result.status === 'rejected');
+    if (rejected) {
+      console.error('资料同步失败:', rejected.reason);
+      throw rejected.reason;
+    }
   }
 
   async function resetPassword(password) {
@@ -1065,7 +1072,13 @@ async function loadProfile() {
     const normalizedAvatar = inferredField
       ? getAvatarFromProfileRecord(data, currentUser.id)
       : metadataAvatar;
-    currentProfile = { ...data, avatar_url: normalizedAvatar };
+    
+    // 确保合并时保留 bio 属性
+    currentProfile = { 
+      ...data, 
+      avatar_url: normalizedAvatar,
+      bio: data.bio || currentUser.user_metadata?.bio || currentProfile?.bio || '' 
+    };
     const originalAvatar = getAvatarFromProfileRecord({
       avatar_url: data.avatar_url,
       avatar: data.avatar,
@@ -1465,13 +1478,34 @@ function selectProfileEmoji(emoji) {
 }
 
 function toggleEmojiGrid() {
-  const collapsedGrid = document.getElementById('profile-emoji-grid-collapsed');
+  const grid = document.getElementById('profile-emoji-grid');
   const toggleBtn = document.getElementById('profile-emoji-toggle');
-  if (!collapsedGrid || !toggleBtn) return;
+  if (!grid || !toggleBtn) return;
   
-  const isExpanded = collapsedGrid.style.display !== 'none';
-  collapsedGrid.style.display = isExpanded ? 'none' : 'flex';
+  const extras = grid.querySelectorAll('.is-extra');
+  const isExpanded = toggleBtn.textContent === '收起';
+  
+  extras.forEach(el => {
+    el.style.display = isExpanded ? 'none' : 'block';
+  });
+  
   toggleBtn.textContent = isExpanded ? '展开更多' : '收起';
+}
+
+function jumpToMyComments() {
+  const commentSection = document.getElementById('comments-section');
+  if (commentSection) {
+    closeProfileModal();
+    commentSection.scrollIntoView({ behavior: 'smooth' });
+    // 如果需要定位到发表框
+    const inputArea = document.getElementById('comment-text');
+    if (inputArea) setTimeout(() => inputArea.focus(), 600);
+  } else {
+    // 如果当前页面没有评论区，跳转到灵性人格测试主页的评论区（假设作为主评论中心）
+    if (confirm('当前页面没有评论区，是否前往灵性人格测试页面查看？')) {
+      window.location.href = '../SoulLab/index.html#comments-section';
+    }
+  }
 }
 
 function handleProfileAvatarFile(input) {
@@ -1598,6 +1632,7 @@ window.openEditProfile = openEditProfile;
 window.confirmLogout = confirmLogout;
 window.closeProfileModal = closeProfileModal;
 window.refreshProfileAvatarPreview = refreshProfileAvatarPreview;
+window.jumpToMyComments = jumpToMyComments;
 window.selectProfileEmoji = selectProfileEmoji;
 window.toggleEmojiGrid = toggleEmojiGrid;
 window.handleProfileAvatarFile = handleProfileAvatarFile;

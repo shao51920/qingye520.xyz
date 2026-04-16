@@ -443,15 +443,6 @@
   background: rgba(167, 139, 250, 0.18);
 }
 
-/* 折叠的表情网格 */
-.profile-emoji-grid-collapsed {
-  display: none;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
-  margin: 0 0 10px;
-  animation: emojiGridExpand 0.2s ease;
-}
-
 @keyframes emojiGridExpand {
   from {
     opacity: 0;
@@ -482,6 +473,33 @@
 .profile-emoji-toggle:hover {
   border-color: rgba(167, 139, 250, 0.6);
   background: rgba(167, 139, 250, 0.1);
+}
+
+.profile-extra-actions {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.profile-comment-jump-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(167, 139, 250, 0.1);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  border-radius: 20px;
+  color: #a78bfa;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.profile-comment-jump-btn:hover {
+  background: rgba(167, 139, 250, 0.2);
+  border-color: #a78bfa;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(167, 139, 250, 0.2);
 }
 
 .profile-upload-btn {
