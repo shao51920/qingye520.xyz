@@ -710,28 +710,50 @@
 
   /* 移动端点赞回复按钮优化 */
   .comment-like-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     padding: 5px 8px;
     min-width: 32px;
+    min-height: 28px;
     color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    cursor: pointer;
   }
 
   .comment-like-btn .heart-icon {
     width: 14px;
     height: 14px;
+    display: block;
+    fill: currentColor;
   }
 
   .comment-like-btn.active {
     color: #ff6b8a;
+    background: rgba(255, 107, 138, 0.15);
+    border-color: rgba(255, 107, 138, 0.35);
   }
 
   .comment-reply-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     padding: 5px 10px;
+    min-height: 28px;
     color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    cursor: pointer;
   }
 
   .comment-reply-action-btn svg {
     width: 12px;
     height: 12px;
+    display: block;
+    fill: currentColor;
   }
 
   .comment-img-wrap img {

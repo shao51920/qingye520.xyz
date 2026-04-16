@@ -90,6 +90,38 @@ function ensureLiveProfileMapped() {
   }
 }
 
+// 确保用户 profile 已同步到数据库（用于外键约束）
+async function ensureProfileSynced(client) {
+  if (!currentUser?.id) return;
+
+  try {
+    // 先检查 profile 是否已存在
+    const { data: existingProfile } = await client
+      .from('profiles')
+      .select('id')
+      .eq('id', currentUser.id)
+      .maybeSingle();
+
+    if (existingProfile) return; // 已存在，无需创建
+
+    // 创建 profile
+    const nickname = currentUser.user_metadata?.nickname ||
+                    currentUser.email?.split('@')[0] ||
+                    '匿名用户';
+
+    await client.from('profiles').upsert({
+      id: currentUser.id,
+      email: currentUser.email || '',
+      nickname: nickname,
+      created_at: new Date().toISOString()
+    }, { onConflict: 'id' });
+
+  } catch (err) {
+    console.warn('确保 profile 同步失败:', err);
+    // 不阻止评论提交，让外键约束错误自然暴露
+  }
+}
+
 function renderAvatarIntoElement(elementId, avatarValue, seed, className) {
   const el = document.getElementById(elementId);
   if (!el) return;
@@ -592,6 +624,9 @@ async function submitCommentInternal({ pageType, parentCommentId, inputEl, submi
   }
 
   try {
+    // 确保用户 profile 已同步到数据库（外键约束要求）
+    await ensureProfileSynced(client);
+
     let imageUrl = null;
 
     if (hasImage) {
