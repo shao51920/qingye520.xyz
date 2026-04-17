@@ -11,7 +11,7 @@ const AVATAR_EMOJIS = [
   '🦊', '🐼', '🐯', '🐨', '🦁', '🦉', '🦄', '🐬', '🐳', '🦋',
   '🐶', '🐱', '🌙', '⭐', '✨', '🔥', '🌈', '🍀', '🌸', '🌻',
   '🍃', '💫', '🎭', '🎨', '🎵', '📚', '🧠', '💡', '🕊️', '☀️',
-  '🌊', '🏔️'
+  '🌊', '🏔️', '🪐', '🌌', '🐚', '🍄', '🕯️', '🎐'
 ];
 
 let profileAvatarDraft = {
@@ -407,7 +407,7 @@ const AuthTemplates = {
         </div>
 
         <p class="auth-error" id="profile-edit-error"></p>
-        <button type="button" class="auth-submit-btn profile-save-btn" id="profile-save-btn" onclick="saveProfileChanges()">保存并同步</button>
+        <button type="button" class="auth-submit-btn profile-save-btn" id="profile-save-btn" onclick="saveProfileChanges()">保存</button>
       </div>
     `;
   },
@@ -1516,9 +1516,10 @@ async function jumpToMyComments() {
     const uniqueTypes = [...new Set(data.map(d => d.page_type))];
     
     if (uniqueTypes.length > 1) {
-      // 弹出模拟选择对话框
+      closeProfileModal(); // 先退出资料页
       showCommentPageSelector(uniqueTypes);
     } else {
+      closeProfileModal(); // 先退出资料页
       redirectToCommentPage(uniqueTypes[0]);
     }
   } catch (err) {
@@ -1535,7 +1536,7 @@ function showCommentPageSelector(types) {
   const overlay = document.createElement('div');
   overlay.id = dialogId;
   overlay.className = 'auth-modal-overlay';
-  overlay.style.cssText = 'z-index: 5000; position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center;';
+  overlay.style.cssText = 'z-index: 5000; position: fixed; inset: 0; background: rgba(8, 4, 20, 0.85); backdrop-filter: blur(15px); display: flex; align-items: center; justify-content: center;';
   
   const labelMap = {
     'soullab': '灵性人格测试',
@@ -1543,17 +1544,21 @@ function showCommentPageSelector(types) {
   };
 
   overlay.innerHTML = `
-    <div class="comment-selector-dialog">
-      <h3 class="comment-selector-title">请选择要查看的评论区</h3>
-      <div style="display:flex; flex-direction:column;">
+    <div class="comment-selector-dialog" style="background: rgba(18, 8, 32, 0.95); border: 1px solid rgba(201, 168, 76, 0.3); border-radius: 30px; padding: 40px; width: 360px; text-align: center; box-shadow: 0 20px 80px rgba(0,0,0,0.8);">
+      <h3 style="font-size: 1.25rem; color: #f0d080; margin-bottom: 30px; font-weight: 600; letter-spacing: 2px;">选择目标领域</h3>
+      <div style="display:flex; flex-direction:column; gap: 16px;">
         ${types.map(t => `
-          <button class="btn-choice" 
+          <button class="btn-choice" style="background: rgba(201, 168, 76, 0.08); border: 1px solid rgba(201, 168, 76, 0.3); color: #f0d080; padding: 16px; border-radius: 16px; cursor: pointer; font-size: 0.95rem; font-weight: 500; transition: all 0.4s; letter-spacing: 1px;"
+            onmouseover="this.style.background='rgba(201, 168, 76, 0.15)'; this.style.borderColor='#f0d080'; this.style.transform='translateY(-2px)'"
+            onmouseout="this.style.background='rgba(201, 168, 76, 0.08)'; this.style.borderColor='rgba(201, 168, 76, 0.3)'; this.style.transform='translateY(0)'"
             onclick="redirectToCommentPage('${t}'); document.getElementById('${dialogId}').remove();">
             ${labelMap[t] || t}
           </button>
         `).join('')}
-        <button class="auth-text-link" style="margin-top:10px; opacity:0.6; background:none; border:none; color:#fff; cursor:pointer;" 
-          onclick="document.getElementById('${dialogId}').remove()">取消</button>
+        <button style="margin-top: 20px; background: transparent; border: none; color: rgba(255,255,255,0.4); font-size: 0.85rem; cursor: pointer; transition: color 0.3s;" 
+          onmouseover="this.style.color='#fff'"
+          onmouseout="this.style.color='rgba(255,255,255,0.4)'"
+          onclick="document.getElementById('${dialogId}').remove()">暂不查看</button>
       </div>
     </div>
   `;
