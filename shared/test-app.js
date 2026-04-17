@@ -91,7 +91,6 @@ function showPage(pageId) {
   const targetPage = document.getElementById(pageId);
   if (targetPage) {
     targetPage.style.display = (pageId === 'quiz' || pageId === 'loading') ? 'flex' : 'block';
-    // 强制重绘
     targetPage.offsetHeight;
     targetPage.classList.add('active');
   }
@@ -195,7 +194,6 @@ async function calculateResult() {
   const pageType = getPageType();
   showPage('loading');
 
-  // 模拟计算进度
   const progressTitle = document.querySelector('.loading-title');
   const messages = pageType === 'soullab'
     ? ["分析潜意识流...", "解构现实编码...", "生成觉醒画像..."]
@@ -208,9 +206,7 @@ async function calculateResult() {
     if (i >= messages.length) clearInterval(interval);
   }, 800);
 
-  // 计算分数
   if (pageType === 'soullab') {
-    // 维度计算逻辑
     scores = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
     questions.forEach(q => {
       const selectedIdx = answers[q.id];
@@ -222,7 +218,6 @@ async function calculateResult() {
       }
     });
 
-    // 映射逻辑：将维度组合映射到 12 种预定义人格
     const personalityMapping = {
       'mask': (s) => s.E >= s.I && s.J >= s.P,
       'hoard': (s) => s.I >= s.E && s.T >= s.F && s.J >= s.P,
@@ -238,17 +233,15 @@ async function calculateResult() {
       'awake': (s) => s.N >= s.S && s.P >= s.J && s.T >= s.F
     };
 
-    let resultKey = 'edge'; // 默认值
+    let resultKey = 'edge';
     for (const [key, check] of Object.entries(personalityMapping)) {
       if (check(scores)) {
         resultKey = key;
         break;
       }
     }
-
     setTimeout(() => finalizeResult(resultKey), 3500);
   } else {
-    // 总分累计逻辑 (ObjTest)
     let totalScore = 0;
     questions.forEach(q => {
       const selectedIdx = answers[q.id];
@@ -271,36 +264,20 @@ function finalizeResult(resultValue) {
     displayObjTestResult(resultValue);
   }
 
-  // 初始化评论区
-  if (window.initComments) {
-    window.initComments();
-  }
+  if (window.initComments) window.initComments();
 }
 
 /* ==============================
-   UI Helpers
+   UI Helpers & Result Display
    ============================== */
-// 人格测试详情展示
 function displaySoulLabResult(type) {
   const dataStore = (typeof personalities !== 'undefined') ? personalities : (typeof personalityTypes !== 'undefined' ? personalityTypes : {});
   const p = dataStore[type];
-  
-  if (!p) {
-    console.error('未找到人格数据:', type);
-    return;
-  }
-
-  const titleEl = document.getElementById('result-title');
-  if (!titleEl) {
-    renderDynamicSoulLab(p, type);
-    return;
-  }
+  if (!p) return;
 
   const nickname = getDisplayNickname();
   const typeLabel = document.getElementById('result-type-label');
-  if (typeLabel) {
-    typeLabel.textContent = nickname ? `${nickname}的人格` : '你的人格类型是';
-  }
+  if (typeLabel) typeLabel.textContent = nickname ? `${nickname}的人格` : '你的人格类型是';
 
   document.getElementById('result-badge').textContent = p.emoji || '🎭';
   document.getElementById('result-title').textContent = p.name;
@@ -312,8 +289,6 @@ function displaySoulLabResult(type) {
   const charImg = document.getElementById('character-img');
   if (charImg && p.image) {
     charImg.src = p.image + "?t=" + new Date().getTime();
-    charImg.alt = p.name;
-    // 增加大图点击事件
     charImg.style.cursor = 'zoom-in';
     charImg.onclick = () => openImageModal(charImg.src);
   }
@@ -334,7 +309,6 @@ function displaySoulLabResult(type) {
   }, 300);
 }
 
-// 客体化测试详情展示
 function displayObjTestResult(score) {
   const tier = resultTiers.find(t => score >= t.minScore && score <= t.maxScore) || resultTiers[0];
   const resContainer = document.getElementById('result-display');
@@ -346,7 +320,7 @@ function displayObjTestResult(score) {
         <div class="result-score-circle" style="width:110px; height:110px; border-radius:50%; border:3px solid ${tier.color}; display:inline-flex; align-items:center; justify-content:center; font-size:3rem; font-weight:800; color:${tier.color}; margin:0 auto 20px; font-family:var(--font-display); box-shadow: 0 0 30px ${tier.color}33;">${score}</div>
         <div class="result-type-label" style="opacity: 0.6;">ASSESSMENT CONCLUSION</div>
         <div class="result-title-group">
-           <h2 class="result-title" style="color: #ffffff; -webkit-text-fill-color: #ffffff; text-shadow: 0 4px 15px rgba(0,0,0,0.5);">${tier.title}</h2>
+           <h2 class="result-title" id="result-title" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; text-shadow: 0 4px 15px rgba(0,0,0,0.6);">${tier.title}</h2>
         </div>
       </div>
 
@@ -368,12 +342,14 @@ function displayObjTestResult(score) {
   `;
 }
 
+/* ==============================
+   Image Lightbox Logic
+   ============================== */
 function openImageModal(src) {
   let modal = document.getElementById('image-modal');
   let modalImg = document.getElementById('modal-img');
   
   if (!modal) {
-    // 动态创建蒙层
     modal = document.createElement('div');
     modal.id = 'image-modal';
     modal.className = 'image-modal';
@@ -396,9 +372,7 @@ function closeImageModal() {
   if (!modal) return;
   modal.style.opacity = '0';
   modal.classList.remove('show-img');
-  setTimeout(() => {
-    modal.style.display = 'none';
-  }, 300);
+  setTimeout(() => { modal.style.display = 'none'; }, 300);
 }
 
 function animateMeter(fillId, value) {
@@ -411,25 +385,26 @@ function animateMeter(fillId, value) {
   const step = value / 30;
   const timer = setInterval(() => {
     current += step;
-    if (current >= value) {
-      current = value;
-      clearInterval(timer);
-    }
+    if (current >= value) { current = value; clearInterval(timer); }
     valEl.textContent = Math.round(current) + '%';
   }, 30);
 }
 
-function restartTest() {
-  window.location.reload();
-}
+function restartTest() { window.location.reload(); }
 
+/* ==============================
+   Poster Generation Logic (Robust)
+   ============================== */
 function shareResult() {
-  if (typeof showToast === 'function') showToast('正在生成专属海报，请稍候...');
+  const toast = (typeof showToast === 'function') ? showToast : alert;
+  toast('正在生成专属海报，请稍候...');
 
   if (typeof html2canvas === 'undefined') {
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    script.crossOrigin = 'anonymous';
     script.onload = () => generatePoster();
+    script.onerror = () => toast('生成海报组件加载失败');
     document.head.appendChild(script);
   } else {
     generatePoster();
@@ -438,174 +413,91 @@ function shareResult() {
 
 function generatePoster() {
   const originalResult = document.querySelector('.result-content');
-  if (!originalResult) {
-    if (typeof showToast === 'function') showToast('未找到结果内容，请稍后再试');
-    return;
-  }
+  const toast = (typeof showToast === 'function') ? showToast : alert;
+  if (!originalResult) { toast('未找到结果内容'); return; }
 
-  // 创建离屏包装器
   const wrapper = document.createElement('div');
   wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;width:680px;background:#0a0a1a;padding:0;margin:0;z-index:-1;';
 
   const clone = originalResult.cloneNode(true);
-
-  // 移除按钮和评论区
-  ['#comments-section', '.result-actions', '.result-comments-shell'].forEach(sel => {
-    const el = clone.querySelector(sel);
-    if (el) el.remove();
+  ['#comments-section', '.result-actions', '.result-comments-shell', '.modal-close'].forEach(sel => {
+    const els = clone.querySelectorAll(sel);
+    els.forEach(el => el.remove());
   });
 
-  // 固定宽度
-  clone.style.cssText = 'width:680px;max-width:680px;padding:40px 30px;margin:0;box-sizing:border-box;background:#0a0a1a;';
+  clone.style.cssText = 'width:680px !important;max-width:680px !important;padding:50px 40px !important;margin:0 !important;box-sizing:border-box !important;background:#0a0a1a !important;display:block !important;';
+  
+  const titleEls = clone.querySelectorAll('.result-title');
+  titleEls.forEach(el => {
+    el.style.cssText = 'color:#ffffff !important;-webkit-text-fill-color:#ffffff !important;background:none !important;text-shadow:none !important;display:block !important;text-align:center !important;';
+  });
 
-  // 确保标题颜色在截图中可见（针对 -webkit-text-fill-color 的兼容）
-  const titleEl = clone.querySelector('.result-title');
-  if (titleEl) {
-    titleEl.style.cssText = 'color:#ffffff;-webkit-text-fill-color:#ffffff;background:none;text-shadow:none;';
-  }
-
-  const imgEl = clone.querySelector('#character-img');
-
-  wrapper.appendChild(clone);
+  const wrapperInner = document.createElement('div');
+  wrapperInner.style.cssText = 'background:#0a0a1a;padding:10px;';
+  wrapperInner.appendChild(clone);
+  wrapper.appendChild(wrapperInner);
   document.body.appendChild(wrapper);
 
-  const doCapture = (scale = 2) => {
-    html2canvas(wrapper, {
+  const doCapture = () => {
+    html2canvas(wrapperInner, {
       backgroundColor: '#0a0a1a',
-      scale,
+      scale: 2,
       useCORS: true,
       allowTaint: false,
-      imageTimeout: 15000,
       width: 680,
-      windowWidth: 680,
-      logging: false
+      windowWidth: 680
     }).then(canvas => {
       document.body.removeChild(wrapper);
       const imgData = canvas.toDataURL('image/png');
 
-      // 创建展示蒙层
       const overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity 0.3s;';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);backdrop-filter:blur(10px);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity 0.3s;';
 
       const hint = document.createElement('p');
-      hint.textContent = '长按图片保存，分享给朋友 ✨';
-      hint.style.cssText = 'color:rgba(255,255,255,0.85);margin-bottom:14px;font-size:14px;letter-spacing:1px;';
+      hint.textContent = '长按图片保存到相册 ✨';
+      hint.style.cssText = 'color:white;margin-bottom:15px;font-size:16px;';
 
       const img = document.createElement('img');
       img.src = imgData;
-      img.style.cssText = 'max-width:90%;max-height:72vh;border-radius:14px;box-shadow:0 0 50px rgba(138,43,226,0.35);border:1px solid rgba(255,255,255,0.08);object-fit:contain;';
+      img.style.cssText = 'max-width:90%;max-height:75vh;border-radius:12px;box-shadow:0 0 40px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);';
 
       const closeBtn = document.createElement('button');
-      closeBtn.textContent = '✕ 关闭';
-      closeBtn.style.cssText = 'margin-top:18px;padding:9px 26px;background:rgba(255,255,255,0.08);color:white;border:1px solid rgba(255,255,255,0.18);border-radius:20px;cursor:pointer;font-size:14px;transition:background 0.2s;';
-      closeBtn.onmouseover = () => closeBtn.style.background = 'rgba(255,255,255,0.18)';
-      closeBtn.onmouseout = () => closeBtn.style.background = 'rgba(255,255,255,0.08)';
+      closeBtn.innerHTML = '✕ 关闭海报';
+      closeBtn.style.cssText = 'margin-top:20px;padding:12px 35px;background:white;color:black;border:none;border-radius:25px;cursor:pointer;font-weight:bold;';
       closeBtn.onclick = () => { overlay.style.opacity = '0'; setTimeout(() => overlay.remove(), 300); };
 
       overlay.append(hint, img, closeBtn);
       document.body.appendChild(overlay);
-      requestAnimationFrame(() => overlay.style.opacity = '1');
-      if (typeof showToast === 'function') showToast('海报生成完毕！');
-
+      setTimeout(() => overlay.style.opacity = '1', 50);
+      toast('生成完毕！');
     }).catch(err => {
-      if (scale > 1.2) {
-        doCapture(1.2);
-        return;
-      }
       if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
-      console.error('海报生成失败:', err);
-      if (typeof showToast === 'function') showToast('生成失败，请重试或直接截图 📸');
+      toast('生成失败，请重试');
     });
   };
 
-  // 预加载角色图以防跨域污染
-  if (imgEl && imgEl.src && !imgEl.src.startsWith('data:')) {
-    const preload = new Image();
-    preload.crossOrigin = 'anonymous';
-    preload.onload = () => {
+  const img = clone.querySelector('#character-img');
+  if (img && img.src && !img.src.startsWith('data:')) {
+    const tempImg = new Image();
+    tempImg.crossOrigin = 'anonymous';
+    tempImg.src = img.src.split('?')[0] + '?t=' + Date.now();
+    tempImg.onload = () => {
       const c = document.createElement('canvas');
-      c.width = preload.naturalWidth; c.height = preload.naturalHeight;
-      c.getContext('2d').drawImage(preload, 0, 0);
-      try { imgEl.src = c.toDataURL('image/png'); } catch (e) {}
-      doCapture();
+      c.width = tempImg.naturalWidth; c.height = tempImg.naturalHeight;
+      c.getContext('2d').drawImage(tempImg, 0, 0);
+      try { img.src = c.toDataURL('image/png'); } catch (e) {}
+      setTimeout(doCapture, 150);
     };
-    preload.onerror = doCapture;
-    preload.src = imgEl.src.split('?')[0] + '?t=' + Date.now();
+    tempImg.onerror = () => doCapture();
   } else {
-    doCapture();
+    setTimeout(doCapture, 150);
   }
 }
 
-function getDisplayNickname() {
-    if (typeof currentUser !== 'undefined' && currentUser && currentUser.user_metadata) {
-        return currentUser.user_metadata.nickname || '你';
-    }
-    return '';
-}
-
-// 通用初始化
+// 初始化
 document.addEventListener('DOMContentLoaded', () => {
-    // 背景粒子
-    const canvas = document.getElementById('particles-canvas');
-    if (canvas) {
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        resize();
-        window.addEventListener('resize', resize);
-        class Particle {
-            constructor() { this.reset(); }
-            reset() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 2 + 0.5;
-                this.speedX = (Math.random() - 0.5) * 0.3;
-                this.speedY = (Math.random() - 0.5) * 0.3;
-                this.opacity = Math.random() * 0.5 + 0.1;
-                this.hue = 250 + Math.random() * 60;
-            }
-            update() {
-                this.x += this.speedX; this.y += this.speedY;
-                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset();
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = `hsla(${this.hue}, 70%, 70%, ${this.opacity})`;
-                ctx.fill();
-            }
-        }
-        for (let i = 0; i < 60; i++) particles.push(new Particle());
-        function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => { p.update(); p.draw(); });
-            requestAnimationFrame(animate);
-        }
-        animate();
-    }
-    
-    // 初始加载参与人数
-    loadParticipantCount();
-
-    // 检查是否自动开始
-    if (new URLSearchParams(window.location.search).get('start') === 'true') {
-        setTimeout(startTest, 500);
-    }
-
-    // 键盘支持
-    window.addEventListener('keydown', (e) => {
-        const quizPage = document.getElementById('quiz');
-        if (!quizPage || !quizPage.classList.contains('active')) return;
-        const key = e.key.toUpperCase();
-        if (['A', 'B', 'C', 'D'].includes(key)) {
-            const index = key.charCodeAt(0) - 65;
-            if (questions[currentQuestion].options[index]) selectOption(index);
-        }
-        if (['1', '2', '3', '4'].includes(key)) {
-            const index = parseInt(key) - 1;
-            if (questions[currentQuestion].options[index]) selectOption(index);
-        }
-        if (key === 'ARROWLEFT' || key === 'BACKSPACE') prevQuestion();
-        if (key === 'ENTER' && answers[questions[currentQuestion].id] !== undefined) nextQuestion();
-    });
+  loadParticipantCount();
+  if (new URLSearchParams(window.location.search).get('start') === 'true') {
+    setTimeout(startTest, 500);
+  }
 });

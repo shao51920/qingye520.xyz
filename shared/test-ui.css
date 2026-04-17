@@ -1582,8 +1582,7 @@ body {
 .result-title {
   font-size: 2.5rem;
   font-weight: 900;
-  color: #ffffff; /* 强制改为纯白 */
-  text-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  color: #ffffff; /* 基础设置 */
   margin: 0;
 }
 
@@ -1715,12 +1714,25 @@ body {
   margin-right: 10px;
 }
 
-/* 修正评论区被居中导致右移的问题 */
-.result-comments-shell {
+/* 强力修正：标题纯白与评论区位置 */
+#result-title, .result-title {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: none !important;
+  text-shadow: 0 4px 15px rgba(0,0,0,0.6) !important;
+  opacity: 1 !important;
+}
+
+/* 强制重置评论区对齐方式 */
+.result-comments-shell, #comments-section {
   text-align: left !important;
-  width: 100%;
-  max-width: 700px;
-  margin: 30px auto 0;
+  width: 100% !important;
+  max-width: 700px !important;
+  margin: 40px auto 0 !important;
+}
+
+.comment-item {
+  text-align: left !important;
 }
 
 @media (max-width: 640px) {
@@ -1728,6 +1740,6 @@ body {
     padding: var(--space-xl) var(--space-md);
   }
   .result-title {
-    font-size: 1.8rem;
+    font-size: 1.8rem !important;
   }
 }
