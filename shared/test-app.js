@@ -168,6 +168,15 @@ function prevQuestion() {
   }
 }
 
+function nextQuestion() {
+  if (currentQuestion < questions.length - 1) {
+    currentQuestion++;
+    renderQuestion();
+  } else if (answers[questions[currentQuestion].id] !== undefined) {
+    calculateResult();
+  }
+}
+
 function updateProgress() {
   const progress = ((currentQuestion + 1) / questions.length) * 100;
   const bar = document.getElementById('progress-bar');
