@@ -804,19 +804,30 @@ const AuthService = (() => {
             bio: bio
           }
         }),
-        NETWORK_TIMEOUT_MS,
+        15000, // 元数据更新给较短的超时
         '更新身份元数据超时'
       )
     ]);
     
-    const rejected = results.find((result) => result.status === 'rejected');
-    if (rejected) {
-      console.error('资料同步失败:', rejected.reason);
-      throw rejected.reason;
+    // 核心逻辑：只要数据库更新成功（results[0]），就认为主流程成功
+    if (results[0].status === 'rejected') {
+      console.error('资料数据库保存失败:', results[0].reason);
+      throw results[0].reason;
     }
 
-    // 强制重新加载以确保所有缓存一致
-    await loadProfile();
+    if (results[1].status === 'rejected') {
+      console.warn('身份元数据同步延迟，但不影响保存结果:', results[1].reason);
+    }
+
+    // 记录保存成功，即使后续重载缓慢
+    try {
+      // 这里的重载给个较短的超时，避免让用户长时间等待刷新
+      await withTimeout(loadProfile(), 8000, '重载超时');
+    } catch (e) {
+      console.warn('重载云端资料超时，回退到本地已保存数据:', e);
+      // 手动触发一次同步状态，确保 UI 收到通知
+      AuthService.notify('session-synced');
+    }
   }
 
   async function resetPassword(password) {
@@ -1501,10 +1512,14 @@ async function jumpToMyComments() {
 
   const client = getAuthClient();
   try {
-    const { data, error } = await client
-      .from('comments')
-      .select('page_type')
-      .eq('user_id', currentUser.id);
+    const { data, error } = await withTimeout(
+      client
+        .from('comments')
+        .select('page_type')
+        .eq('user_id', currentUser.id),
+      15000,
+      '查询评论超时'
+    );
 
     if (error) throw error;
 
