@@ -1602,11 +1602,14 @@ body {
 }
 
 .result-subtitle {
-  font-size: 1.1rem;
-  color: var(--accent-2);
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  color: var(--accent-1);
+  opacity: 0.8;
   margin-bottom: 30px;
   text-align: center;
-  font-weight: 500;
+  font-weight: 400;
+  letter-spacing: 0.05em;
 }
 
 /* Meters */
@@ -1645,8 +1648,12 @@ body {
   width: 0;
   border-radius: 10px;
   transition: width 1.5s cubic-bezier(0.23, 1, 0.32, 1);
-  background: linear-gradient(90deg, var(--accent-1), var(--accent-3));
 }
+
+.meter-row:nth-child(1) .meter-fill { background: linear-gradient(90deg, #a78bfa, #c084fc); }
+.meter-row:nth-child(2) .meter-fill { background: linear-gradient(90deg, #34d399, #6ee7b7); }
+.meter-row:nth-child(3) .meter-fill { background: linear-gradient(90deg, #fbbf24, #fcd34d); }
+.meter-row:nth-child(4) .meter-fill { background: linear-gradient(90deg, #f472b6, #f9a8d4); }
 
 .meter-value {
   width: 35px;

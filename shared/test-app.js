@@ -347,29 +347,30 @@ function displayObjTestResult(score) {
   const resContainer = document.getElementById('result-display');
   if (!resContainer) return;
 
-  // 统一使用 soul lab 的这种高质量卡片结构
+  // 统一使用这种垂直轴线对称的高级感结构
   resContainer.innerHTML = `
     <div class="result-content">
-      <div class="result-header" style="text-align: center; margin-bottom: 30px;">
-        <div class="result-score-circle" style="width:100px; height:100px; border-radius:50%; border:4px solid ${tier.color}; display:inline-flex; align-items:center; justify-content:center; font-size:2.5rem; font-weight:800; color:${tier.color}; margin-bottom:15px; font-family:var(--font-display);">${score}</div>
-        <div class="result-type-label" style="font-size:0.9rem; color:rgba(255,255,255,0.6); letter-spacing:2px; margin-bottom:5px;">测评结论</div>
-        <h2 class="result-title" style="font-size:2rem; font-weight:900; color:${tier.color}; margin:0;">${tier.title}</h2>
+      <div class="result-header" style="text-align: center; margin-bottom: 40px;">
+        <div class="result-score-circle" style="width:110px; height:110px; border-radius:50%; border:3px solid ${tier.color}; display:inline-flex; align-items:center; justify-content:center; font-size:3rem; font-weight:800; color:${tier.color}; margin:0 auto 20px; font-family:var(--font-display); box-shadow: 0 0 30px ${tier.color}33;">${score}</div>
+        <div class="result-type-label" style="opacity: 0.6;">ASSESSMENT CONCLUSION</div>
+        <div class="result-title-group">
+           <h2 class="result-title" style="color: ${tier.color}; background: none; -webkit-text-fill-color: ${tier.color}; text-shadow: 0 0 15px ${tier.color}44;">${tier.title}</h2>
+        </div>
       </div>
 
-      <div class="result-description" style="line-height:2; margin-bottom:25px;">
-        <div style="font-size:0.75rem; color:var(--accent-1); text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; opacity:0.7;">深度评估结论</div>
-        <div style="font-size:0.95rem; color:var(--text-secondary);">${tier.description}</div>
+      <div class="result-description" style="text-align: center; line-height: 2; margin-bottom: 35px; background: rgba(255,255,255,0.02); padding: 25px; border-radius: var(--radius-lg); border: 1px solid rgba(255,255,255,0.05);">
+        <div style="font-size: 0.75rem; color: var(--accent-1); text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 12px; opacity: 0.8;">评估深度结论</div>
+        <p style="margin:0; font-size: 1rem; color: var(--text-secondary);">${tier.description}</p>
       </div>
 
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; margin-bottom:30px;">
-        <div class="result-box">
-          <h3 style="font-size:0.95rem; color:var(--accent-1); margin-bottom:12px;">心理状态解析</h3>
-          <p style="font-size:0.88rem; color:var(--text-secondary); line-height:1.7;">${tier.psychState}</p>
-        </div>
-        <div class="result-box">
-          <h3 style="font-size:0.95rem; color:var(--accent-1); margin-bottom:12px;">觉醒建议</h3>
-          <div style="font-size:0.88rem; color:var(--text-secondary); line-height:1.7;">${tier.advice}</div>
-        </div>
+      <div class="result-section" style="margin-bottom: 30px;">
+        <h3 class="section-label" style="text-align: center; margin-bottom: 15px;">心理状态解析</h3>
+        <p style="text-align: center; font-size: 0.95rem; line-height: 1.8; color: var(--text-secondary);">${tier.psychState}</p>
+      </div>
+
+      <div class="result-section" style="margin-bottom: 30px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 30px;">
+        <h3 class="section-label" style="text-align: center; margin-bottom: 15px;">觉醒建议</h3>
+        <div style="text-align: center; font-size: 0.95rem; line-height: 1.8; color: var(--text-secondary); max-width: 90%; margin: 0 auto;">${tier.advice}</div>
       </div>
     </div>
   `;
