@@ -8,10 +8,9 @@ let scores = {};
 let toastHideTimer = null;
 
 const RESULT_VIEW_TABLE = 'result_views';
-const PARTICIPANT_COUNTER_START_AT = '2026-04-17T14:00:00.000Z';
-const PARTICIPANT_COUNTER_CONFIG = {
-  soullab: { baseCount: 417 },
-  objtest: { baseCount: 322 }
+const participantCountState = {
+  soullab: 0,
+  objtest: 0
 };
 
 function getAppSupabaseClient() {
@@ -57,13 +56,6 @@ function showToast(message, duration = 2600) {
   }, duration);
 }
 
-/* ==============================
-   Participant Count
-   ============================== */
-function getParticipantCounterConfig(pageType) {
-  return PARTICIPANT_COUNTER_CONFIG[pageType] || PARTICIPANT_COUNTER_CONFIG.soullab;
-}
-
 function renderParticipantCount(element, count) {
   if (!element) return;
 
@@ -76,10 +68,9 @@ async function loadParticipantCount() {
   const client = getAppSupabaseClient();
   const pageType = getPageType();
   const countEl = document.getElementById(`${pageType}-participant-count`);
-  const { baseCount } = getParticipantCounterConfig(pageType);
   if (!countEl) return;
   if (!client) {
-    renderParticipantCount(countEl, baseCount);
+    renderParticipantCount(countEl, participantCountState[pageType] || 0);
     return;
   }
 
@@ -87,14 +78,14 @@ async function loadParticipantCount() {
     const { count, error } = await client
       .from(RESULT_VIEW_TABLE)
       .select('*', { count: 'exact', head: true })
-      .eq('page_type', pageType)
-      .gte('created_at', PARTICIPANT_COUNTER_START_AT);
+      .eq('page_type', pageType);
 
     if (error) throw error;
-    renderParticipantCount(countEl, baseCount + (count || 0));
+    participantCountState[pageType] = count || 0;
+    renderParticipantCount(countEl, participantCountState[pageType]);
   } catch (err) {
     console.error('Count load failed:', err);
-    renderParticipantCount(countEl, baseCount);
+    renderParticipantCount(countEl, participantCountState[pageType] || 0);
   }
 }
 
@@ -103,8 +94,13 @@ async function trackResultView() {
   if (!client) return;
 
   try {
-    await client.from(RESULT_VIEW_TABLE).insert({ page_type: getPageType() });
-    loadParticipantCount();
+    const pageType = getPageType();
+    await client.from(RESULT_VIEW_TABLE).insert({ page_type: pageType });
+    participantCountState[pageType] = (participantCountState[pageType] || 0) + 1;
+    renderParticipantCount(document.getElementById(`${pageType}-participant-count`), participantCountState[pageType]);
+    setTimeout(() => {
+      loadParticipantCount();
+    }, 400);
   } catch (err) {
     console.error('Track failed:', err);
   }

@@ -827,13 +827,12 @@ body {
 
 .loading-title {
   font-family: var(--font-display);
-  font-size: clamp(1.05rem, 2.8vw, 1.3rem);
+  font-size: clamp(0.56rem, 1.4vw, 0.68rem);
   font-weight: 700;
-  line-height: 1.7;
-  letter-spacing: 0.06em;
+  line-height: 1.65;
+  letter-spacing: 0.04em;
   color: rgba(241, 240, 255, 0.92);
   text-shadow: 0 0 22px rgba(167, 139, 250, 0.14);
-  animation: loadingTitleBreath 2.8s ease-in-out infinite;
 }
 
 @keyframes loadingTextFade {
@@ -845,21 +844,6 @@ body {
 
   50% {
     opacity: 1;
-  }
-}
-
-@keyframes loadingTitleBreath {
-  0%,
-  100% {
-    opacity: 0.72;
-    transform: scale(0.985);
-    letter-spacing: 0.05em;
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1);
-    letter-spacing: 0.07em;
   }
 }
 
@@ -1754,13 +1738,24 @@ body {
 }
 
 /* 评论区归位：容器居中，内容左对齐 */
-.result-comments-shell, #comments-section {
+.result-comments-shell {
   text-align: left !important;
-  width: min(700px, calc(100vw - 40px)) !important;
-  margin: 40px auto 0 !important;
+  width: calc(100% + 64px) !important;
+  max-width: none !important;
+  margin: 40px -32px 0 !important;
   display: block !important;
-  padding: 30px 0 !important;
+  padding: 30px 32px !important;
   border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+#comments-section {
+  text-align: left !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 auto !important;
+  display: block !important;
+  padding: 0 !important;
+  border-top: none !important;
 }
 
 /* 确保评论项内部也是左对齐 */
