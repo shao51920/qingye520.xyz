@@ -28,7 +28,7 @@ let pendingRegisterEmail = '';
 let pendingRegisterNickname = '';
 let otpCooldownTimer = null;
 let otpCooldownSeconds = 0;
-const NETWORK_TIMEOUT_MS = 12000;
+const NETWORK_TIMEOUT_MS = 25000;
 const OTP_VERIFY_TIMEOUT_MS = 20000;
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -1545,7 +1545,7 @@ function showCommentPageSelector(types) {
 
   overlay.innerHTML = `
     <div class="comment-selector-dialog" style="background: rgba(18, 8, 32, 0.95); border: 1px solid rgba(201, 168, 76, 0.3); border-radius: 30px; padding: 40px; width: 360px; text-align: center; box-shadow: 0 20px 80px rgba(0,0,0,0.8);">
-      <h3 style="font-size: 1.25rem; color: #f0d080; margin-bottom: 30px; font-weight: 600; letter-spacing: 2px;">选择目标领域</h3>
+      <h3 style="font-size: 1.25rem; color: #f0d080; margin-bottom: 30px; font-weight: 600; letter-spacing: 2px;">选择评论区</h3>
       <div style="display:flex; flex-direction:column; gap: 16px;">
         ${types.map(t => `
           <button class="btn-choice" style="background: rgba(201, 168, 76, 0.08); border: 1px solid rgba(201, 168, 76, 0.3); color: #f0d080; padding: 16px; border-radius: 16px; cursor: pointer; font-size: 0.95rem; font-weight: 500; transition: all 0.4s; letter-spacing: 1px;"

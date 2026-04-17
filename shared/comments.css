@@ -97,8 +97,13 @@
 
 #comment-text::placeholder,
 .comment-reply-text::placeholder {
-  color: rgba(255, 255, 255, 0.45);
-  font-weight: 300;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 400;
+  text-shadow: 
+    -1px -1px 0 #000,  
+     1px -1px 0 #000,
+    -1px  1px 0 #000,
+     1px  1px 0 #000;
 }
 
 .comment-input-actions {
