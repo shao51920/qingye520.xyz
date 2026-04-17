@@ -97,23 +97,45 @@
   </section>
 
   <!-- 4. Result Page -->
+  <!-- 4. Result Page -->
   <section id="result" class="page">
-    <div class="result-container">
-      <div id="result-display"></div>
+    <div id="result-display" style="width: 100%; max-width: 700px; margin: 0 auto;"></div>
+    
+    <div class="result-actions" style="margin-top: 30px;">
+      <button class="btn-primary" onclick="restartTest()">
+        <span>重新测试</span>
+      </button>
+    </div>
 
-      <div class="result-actions">
-        <button class="btn-primary" onclick="window.location.reload()">
-          <span>重新测试</span>
-        </button>
+    <!-- 作者说明底部（复刻 SoulLab 设计） -->
+    <div class="author-divider"
+      style="margin: 35px auto 25px auto; width: 100%; max-width: 700px; height: 2px; background: linear-gradient(90deg, transparent 5%, var(--accent-1) 50%, transparent 95%); box-shadow: 0 0 15px var(--accent-1), 0 0 5px rgba(255, 255, 255, 0.3); opacity: 0.8;">
+    </div>
+    <div class="author-credit"
+      style="display: flex; justify-content: space-between; align-items: center; text-align: left; padding: 0 5px; max-width: 700px; margin: 0 auto 40px auto; width: 100%; box-sizing: border-box;">
+      <div style="flex: 1;">
+        <p class="author-info" style="margin: 0; line-height: 1.8; font-size: 0.9rem;">
+          作者：<span class="author-name">青野</span><br>
+          公众号：<a
+            href="https://mp.weixin.qq.com/mp/profile_ext?action=home&__biz=MzI1ODA1OTMxMQ==&subscene=0#wechat_redirect"
+            target="_blank" rel="noopener noreferrer" class="author-link">觉醒诗社 <svg width="14" height="14"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
+              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg></a>
+        </p>
       </div>
+      <div style="margin-left: 20px; text-align: center; display: flex; flex-direction: column; align-items: center;">
+        <img src="../SoulLab/images/qrcode.png" alt="扫码测试"
+          style="width: 80px; height: 80px; object-fit: contain; border-radius: 8px; border: 2px solid rgba(255,255,255,0.15); background: white; padding: 3px; margin-bottom: 0;">
+        <span
+          style="font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-top: 6px; white-space: nowrap;">扫码测试灵格</span>
+      </div>
+    </div>
 
-      <div class="author-credit-box">
-        <p>作者：青野 | 公众号：觉醒诗社</p>
-      </div>
-
-      <div class="result-comments-shell">
-        <div id="comments-section" data-page="objtest"></div>
-      </div>
+    <div class="result-comments-shell">
+      <div id="comments-section" data-page="objtest"></div>
     </div>
   </section>
 
