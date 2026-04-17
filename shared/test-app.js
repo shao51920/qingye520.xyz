@@ -374,6 +374,9 @@ document.addEventListener('DOMContentLoaded', () => {
         animate();
     }
     
+    // 初始加载参与人数
+    loadParticipantCount();
+
     // 检查是否自动开始
     if (new URLSearchParams(window.location.search).get('start') === 'true') {
         setTimeout(startTest, 500);
