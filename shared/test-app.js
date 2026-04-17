@@ -282,50 +282,63 @@ function finalizeResult(resultValue) {
    ============================== */
 // 人格测试详情展示
 function displaySoulLabResult(type) {
-  // 兼容不同的变量命名
   const dataStore = (typeof personalities !== 'undefined') ? personalities : (typeof personalityTypes !== 'undefined' ? personalityTypes : {});
-  const personality = dataStore[type];
-
-  if (!personality) {
+  const p = dataStore[type];
+  
+  if (!p) {
     console.error('未找到人格数据:', type);
     return;
   }
 
+  // 这里的 ID 必须对应 index.html 中还原的静态结构
+  const titleEl = document.getElementById('result-title');
+  if (!titleEl) {
+    // 如果没有静态结构，则退回到动态生成模式（用于兜底）
+    renderDynamicSoulLab(p, type);
+    return;
+  }
+
+  const nickname = getDisplayNickname();
+  const typeLabel = document.getElementById('result-type-label');
+  if (typeLabel) {
+    typeLabel.textContent = nickname ? `${nickname}的人格` : '你的人格类型是';
+  }
+
+  document.getElementById('result-badge').textContent = p.emoji || '🎭';
+  document.getElementById('result-title').textContent = p.name;
+  document.getElementById('result-subtitle').textContent = p.subtitle || p.tagline || '';
+  document.getElementById('result-description').innerHTML = p.description;
+  document.getElementById('result-quote').textContent = p.quote || '';
+  document.getElementById('result-mbti').innerHTML = p.mbti || '';
+
+  const charImg = document.getElementById('character-img');
+  if (charImg && p.image) {
+    charImg.src = p.image + "?t=" + new Date().getTime();
+    charImg.alt = p.name;
+  }
+
+  const tagsContainer = document.getElementById('result-tags');
+  if (tagsContainer) {
+    const tags = p.tags || (p.traits ? [...p.traits, ...(p.weaknesses || [])] : []);
+    tagsContainer.innerHTML = tags.map(t => `<span class="result-tag">#${t}</span>`).join('');
+  }
+
+  // 动画逻辑
+  setTimeout(() => {
+    if (p.meters) {
+       animateMeter('meter-mask', p.meters.mask || 50);
+       animateMeter('meter-awake', p.meters.awake || 50);
+       animateMeter('meter-chill', p.meters.chill || 50);
+       animateMeter('meter-drama', p.meters.drama || 50);
+    }
+  }, 300);
+}
+
+function renderDynamicSoulLab(p, type) {
   const resContainer = document.getElementById('result-display');
   if (!resContainer) return;
-
-  const tagline = personality.subtitle || personality.tagline || '';
-  const tags = personality.tags || (personality.traits ? [...personality.traits, ...(personality.weaknesses || [])] : []);
-
-  resContainer.innerHTML = `
-    <div class="result-card">
-      <div class="result-header">
-        <div class="result-type-code">${type}</div>
-        <h2 class="result-title">${personality.name}</h2>
-        <div class="result-tagline">${tagline}</div>
-      </div>
-      
-      <div class="result-section">
-        <h3 class="section-label">深度侧写</h3>
-        <p class="section-content">${personality.description}</p>
-      </div>
-
-      <div class="result-section">
-        <h3 class="section-label">特质标签</h3>
-        <div class="result-tags">
-          ${tags.map(t => `<span class="result-tag">${t}</span>`).join('')}
-        </div>
-      </div>
-
-      <div class="result-section quote-section">
-        <p class="spiritual-quote">“ ${personality.quote} ”</p>
-      </div>
-      
-      <div class="result-mbti">
-         <span class="mbti-label">参考维度：</span>${personality.mbti || ''}
-      </div>
-    </div>
-  `;
+  // 简化版的兜底动态生成
+  resContainer.innerHTML = `<div class="result-card"><h3>${p.name}</h3><p>${p.description}</p></div>`;
 }
 
 // 客体化测试详情展示
@@ -334,113 +347,131 @@ function displayObjTestResult(score) {
   const resContainer = document.getElementById('result-display');
   if (!resContainer) return;
 
+  // 统一使用 soul lab 的这种高质量卡片结构
   resContainer.innerHTML = `
-    <div class="result-card">
-      <div class="result-header">
-        <div class="result-score-circle" style="border-color: ${tier.color}; color: ${tier.color}">${score}</div>
-        <h2 class="result-title" style="color: ${tier.color}">${tier.title}</h2>
+    <div class="result-content">
+      <div class="result-header" style="text-align: center; margin-bottom: 30px;">
+        <div class="result-score-circle" style="width:100px; height:100px; border-radius:50%; border:4px solid ${tier.color}; display:inline-flex; align-items:center; justify-content:center; font-size:2.5rem; font-weight:800; color:${tier.color}; margin-bottom:15px; font-family:var(--font-display);">${score}</div>
+        <div class="result-type-label" style="font-size:0.9rem; color:rgba(255,255,255,0.6); letter-spacing:2px; margin-bottom:5px;">测评结论</div>
+        <h2 class="result-title" style="font-size:2rem; font-weight:900; color:${tier.color}; margin:0;">${tier.title}</h2>
       </div>
 
-      <div class="result-section">
-        <h3 class="section-label">评估深度结论</h3>
-        <div class="tier-desc">${tier.description}</div>
+      <div class="result-description" style="line-height:2; margin-bottom:25px;">
+        <div style="font-size:0.75rem; color:var(--accent-1); text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; opacity:0.7;">深度评估结论</div>
+        <div style="font-size:0.95rem; color:var(--text-secondary);">${tier.description}</div>
       </div>
 
-      <div class="result-grid">
-        <div class="result-section">
-          <h3 class="section-label">心理状态解析</h3>
-          <p class="section-content">${tier.psychState}</p>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; margin-bottom:30px;">
+        <div class="result-box">
+          <h3 style="font-size:0.95rem; color:var(--accent-1); margin-bottom:12px;">心理状态解析</h3>
+          <p style="font-size:0.88rem; color:var(--text-secondary); line-height:1.7;">${tier.psychState}</p>
         </div>
-        <div class="result-section">
-          <h3 class="section-label">觉醒建议</h3>
-          <div class="tier-advice">${tier.advice}</div>
+        <div class="result-box">
+          <h3 style="font-size:0.95rem; color:var(--accent-1); margin-bottom:12px;">觉醒建议</h3>
+          <div style="font-size:0.88rem; color:var(--text-secondary); line-height:1.7;">${tier.advice}</div>
         </div>
       </div>
     </div>
   `;
 }
 
+function animateMeter(fillId, value) {
+  const fill = document.getElementById(fillId);
+  const valEl = document.getElementById(fillId + '-val');
+  if (!fill || !valEl) return;
+  fill.style.width = value + '%';
+
+  let current = 0;
+  const step = value / 30;
+  const timer = setInterval(() => {
+    current += step;
+    if (current >= value) {
+      current = value;
+      clearInterval(timer);
+    }
+    valEl.textContent = Math.round(current) + '%';
+  }, 30);
+}
+
+function restartTest() {
+  window.location.reload();
+}
+
+function shareResult() {
+    if (typeof showToast === 'function') showToast('正在生成专属海报，请稍候...');
+    // 这里如果需要 html2canvas 逻辑，可以在后续补充，目前保持原样
+}
+
+function getDisplayNickname() {
+    if (typeof currentUser !== 'undefined' && currentUser && currentUser.user_metadata) {
+        return currentUser.user_metadata.nickname || '你';
+    }
+    return '';
+}
+
 // 通用初始化
 document.addEventListener('DOMContentLoaded', () => {
-  // 背景粒子
-  const canvas = document.getElementById('particles-canvas');
-  if (canvas) {
-    const ctx = canvas.getContext('2d');
-    let particles = [];
-    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-    resize();
-    window.addEventListener('resize', resize);
-    class Particle {
-      constructor() { this.reset(); }
-      reset() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.size = Math.random() * 2 + 0.5;
-        this.speedX = (Math.random() - 0.5) * 0.3;
-        this.speedY = (Math.random() - 0.5) * 0.3;
-        this.opacity = Math.random() * 0.5 + 0.1;
-        this.hue = 250 + Math.random() * 60;
-      }
-      update() {
-        this.x += this.speedX; this.y += this.speedY;
-        if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset();
-      }
-      draw() {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${this.hue}, 70%, 70%, ${this.opacity})`;
-        ctx.fill();
-      }
+    // 背景粒子
+    const canvas = document.getElementById('particles-canvas');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        resize();
+        window.addEventListener('resize', resize);
+        class Particle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.speedY = (Math.random() - 0.5) * 0.3;
+                this.opacity = Math.random() * 0.5 + 0.1;
+                this.hue = 250 + Math.random() * 60;
+            }
+            update() {
+                this.x += this.speedX; this.y += this.speedY;
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset();
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${this.hue}, 70%, 70%, ${this.opacity})`;
+                ctx.fill();
+            }
+        }
+        for (let i = 0; i < 60; i++) particles.push(new Particle());
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
     }
-    for (let i = 0; i < 60; i++) particles.push(new Particle());
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach(p => { p.update(); p.draw(); });
-      requestAnimationFrame(animate);
-    }
-    animate();
-  }
+    
+    // 初始加载参与人数
+    loadParticipantCount();
 
-  // 初始加载参与人数
-  loadParticipantCount();
-
-  // 检查是否自动开始
-  if (new URLSearchParams(window.location.search).get('start') === 'true') {
-    setTimeout(startTest, 500);
-  }
-
-  // 新增：键盘快捷键支持 (A, B, C, D / 1, 2, 3, 4)
-  window.addEventListener('keydown', (e) => {
-    // 仅在答题页生效
-    const quizPage = document.getElementById('quiz');
-    if (!quizPage || !quizPage.classList.contains('active')) return;
-
-    const key = e.key.toUpperCase();
-
-    // ABCD 映射
-    if (['A', 'B', 'C', 'D'].includes(key)) {
-      const index = key.charCodeAt(0) - 65;
-      if (questions[currentQuestion].options[index]) {
-        selectOption(index);
-      }
+    // 检查是否自动开始
+    if (new URLSearchParams(window.location.search).get('start') === 'true') {
+        setTimeout(startTest, 500);
     }
 
-    // 数字键映射 (1, 2, 3, 4)
-    if (['1', '2', '3', '4'].includes(key)) {
-      const index = parseInt(key) - 1;
-      if (questions[currentQuestion].options[index]) {
-        selectOption(index);
-      }
-    }
-
-    // 左右键/退格键返回
-    if (key === 'ARROWLEFT' || key === 'BACKSPACE') {
-      prevQuestion();
-    }
-
-    // 如果已经选了，按回车进下一题
-    if (key === 'ENTER' && answers[questions[currentQuestion].id] !== undefined) {
-      nextQuestion();
-    }
-  });
+    // 键盘支持
+    window.addEventListener('keydown', (e) => {
+        const quizPage = document.getElementById('quiz');
+        if (!quizPage || !quizPage.classList.contains('active')) return;
+        const key = e.key.toUpperCase();
+        if (['A', 'B', 'C', 'D'].includes(key)) {
+            const index = key.charCodeAt(0) - 65;
+            if (questions[currentQuestion].options[index]) selectOption(index);
+        }
+        if (['1', '2', '3', '4'].includes(key)) {
+            const index = parseInt(key) - 1;
+            if (questions[currentQuestion].options[index]) selectOption(index);
+        }
+        if (key === 'ARROWLEFT' || key === 'BACKSPACE') prevQuestion();
+        if (key === 'ENTER' && answers[questions[currentQuestion].id] !== undefined) nextQuestion();
+    });
 });
