@@ -8,10 +8,29 @@ let scores = {};
 let toastHideTimer = null;
 
 const RESULT_VIEW_TABLE = 'result_views';
+const PARTICIPANT_COUNT_STORAGE_PREFIX = 'participant-count:';
 const participantCountState = {
   soullab: 0,
   objtest: 0
 };
+
+function getStoredParticipantCount(pageType) {
+  try {
+    const raw = window.localStorage.getItem(`${PARTICIPANT_COUNT_STORAGE_PREFIX}${pageType}`);
+    const value = Number(raw);
+    return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+  } catch (_error) {
+    return 0;
+  }
+}
+
+function setStoredParticipantCount(pageType, count) {
+  try {
+    window.localStorage.setItem(`${PARTICIPANT_COUNT_STORAGE_PREFIX}${pageType}`, String(Math.max(0, Math.floor(Number(count) || 0))));
+  } catch (_error) {
+    // Ignore storage failures and keep in-memory state only.
+  }
+}
 
 function getAppSupabaseClient() {
   if (window.supabaseClient && typeof window.supabaseClient.from === 'function') return window.supabaseClient;
@@ -68,9 +87,11 @@ async function loadParticipantCount() {
   const client = getAppSupabaseClient();
   const pageType = getPageType();
   const countEl = document.getElementById(`${pageType}-participant-count`);
+  const storedCount = getStoredParticipantCount(pageType);
   if (!countEl) return;
   if (!client) {
-    renderParticipantCount(countEl, participantCountState[pageType] || 0);
+    participantCountState[pageType] = storedCount;
+    renderParticipantCount(countEl, participantCountState[pageType]);
     return;
   }
 
@@ -81,11 +102,13 @@ async function loadParticipantCount() {
       .eq('page_type', pageType);
 
     if (error) throw error;
-    participantCountState[pageType] = count || 0;
+    participantCountState[pageType] = Math.max(storedCount, count || 0);
+    setStoredParticipantCount(pageType, participantCountState[pageType]);
     renderParticipantCount(countEl, participantCountState[pageType]);
   } catch (err) {
     console.error('Count load failed:', err);
-    renderParticipantCount(countEl, participantCountState[pageType] || 0);
+    participantCountState[pageType] = storedCount;
+    renderParticipantCount(countEl, participantCountState[pageType]);
   }
 }
 
@@ -97,10 +120,8 @@ async function trackResultView() {
     const pageType = getPageType();
     await client.from(RESULT_VIEW_TABLE).insert({ page_type: pageType });
     participantCountState[pageType] = (participantCountState[pageType] || 0) + 1;
+    setStoredParticipantCount(pageType, participantCountState[pageType]);
     renderParticipantCount(document.getElementById(`${pageType}-participant-count`), participantCountState[pageType]);
-    setTimeout(() => {
-      loadParticipantCount();
-    }, 400);
   } catch (err) {
     console.error('Track failed:', err);
   }

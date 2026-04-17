@@ -827,7 +827,7 @@ body {
 
 .loading-title {
   font-family: var(--font-display);
-  font-size: clamp(0.56rem, 1.4vw, 0.68rem);
+  font-size: clamp(0.68rem, 1.55vw, 0.82rem);
   font-weight: 700;
   line-height: 1.65;
   letter-spacing: 0.04em;

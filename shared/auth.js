@@ -612,6 +612,7 @@ const AuthService = (() => {
 
   async function sendOtp(email, password) {
     const client = getAuthClient();
+    const saveBtn = document.getElementById('profile-save-btn');
     if (!client?.auth) throw new Error('认证模块初始化失败，请刷新页面后重试');
     if (!email) throw new Error('请输入邮箱');
     if (password.length < MIN_PASSWORD_LENGTH) throw new Error(`密码至少需要 ${MIN_PASSWORD_LENGTH} 位`);
