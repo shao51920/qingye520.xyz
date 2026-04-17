@@ -751,19 +751,22 @@ const AuthService = (() => {
     let avatarValue = normalizeAvatarValue(`emoji:${profileAvatarDraft.emoji || pickAvatarEmoji(currentUser.id)}`, currentUser.id);
 
     if (profileAvatarDraft.file) {
+      if (saveBtn) saveBtn.textContent = '正在上传图片...';
       const ext = profileAvatarDraft.file.name.split('.').pop() || 'png';
       const filePath = `avatars/${currentUser.id}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      
       const { error: uploadError } = await withTimeout(
         client.storage
           .from('comment-images')
           .upload(filePath, profileAvatarDraft.file, { cacheControl: '3600', upsert: true }),
-        NETWORK_TIMEOUT_MS,
-        '头像上传超时'
+        60000,
+        '头像上传超时，请尝试压缩图片或检查网络后再试'
       );
       if (uploadError) throw uploadError;
 
       const { data: publicData } = client.storage.from('comment-images').getPublicUrl(filePath);
       avatarValue = publicData.publicUrl;
+      if (saveBtn) saveBtn.textContent = '正在保存资料...';
     }
 
     const avatarEmoji = getEmojiFromAvatarValue(avatarValue, currentUser.id);
@@ -804,7 +807,7 @@ const AuthService = (() => {
             bio: bio
           }
         }),
-        15000, // 元数据更新给较短的超时
+        15000, 
         '更新身份元数据超时'
       )
     ]);
@@ -821,11 +824,9 @@ const AuthService = (() => {
 
     // 记录保存成功，即使后续重载缓慢
     try {
-      // 这里的重载给个较短的超时，避免让用户长时间等待刷新
       await withTimeout(loadProfile(), 8000, '重载超时');
     } catch (e) {
       console.warn('重载云端资料超时，回退到本地已保存数据:', e);
-      // 手动触发一次同步状态，确保 UI 收到通知
       AuthService.notify('session-synced');
     }
   }
