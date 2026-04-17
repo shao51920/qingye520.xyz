@@ -95,12 +95,12 @@ function showPage(pageId) {
     targetPage.offsetHeight;
     targetPage.classList.add('active');
   }
-  
+
   document.body.classList.remove('landing-active', 'result-active', 'quiz-active');
   if (pageId === 'landing') document.body.classList.add('landing-active');
   if (pageId === 'quiz') document.body.classList.add('quiz-active');
   if (pageId === 'result') document.body.classList.add('result-active');
-  
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -146,7 +146,7 @@ function renderQuestion() {
 function selectOption(idx) {
   const q = questions[currentQuestion];
   answers[q.id] = idx;
-  
+
   const options = document.querySelectorAll('.option');
   options.forEach(opt => opt.classList.remove('selected'));
   options[idx].classList.add('selected');
@@ -182,7 +182,7 @@ function updateProgress() {
   const bar = document.getElementById('progress-bar');
   const currentQ = document.getElementById('current-q');
   const totalQ = document.getElementById('total-q');
-  
+
   if (bar) bar.style.width = `${progress}%`;
   if (currentQ) currentQ.textContent = currentQuestion + 1;
   if (totalQ) totalQ.textContent = questions.length;
@@ -194,13 +194,13 @@ function updateProgress() {
 async function calculateResult() {
   const pageType = getPageType();
   showPage('loading');
-  
+
   // 模拟计算进度
   const progressTitle = document.querySelector('.loading-title');
-  const messages = pageType === 'soullab' 
-    ? ["正在连接星界...", "分析潜意识流...", "解构现实编码...", "生成觉醒画像..."]
+  const messages = pageType === 'soullab'
+    ? ["分析潜意识流...", "解构现实编码...", "生成觉醒画像..."]
     : ["正在收集数据...", "分析认知偏差...", "评估主体状态...", "生成系统结论..."];
-    
+
   let i = 0;
   const interval = setInterval(() => {
     if (progressTitle && messages[i]) progressTitle.textContent = messages[i];
@@ -211,7 +211,7 @@ async function calculateResult() {
   // 计算分数
   if (pageType === 'soullab') {
     // 维度计算逻辑
-    scores = { E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0 };
+    scores = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
     questions.forEach(q => {
       const selectedIdx = answers[q.id];
       if (selectedIdx !== undefined) {
@@ -221,11 +221,32 @@ async function calculateResult() {
         }
       }
     });
-    const type = (scores.E >= scores.I ? 'E' : 'I') +
-                 (scores.N >= scores.S ? 'N' : 'S') +
-                 (scores.F >= scores.T ? 'F' : 'T') +
-                 (scores.P >= scores.J ? 'P' : 'J');
-    setTimeout(() => finalizeResult(type), 3500);
+
+    // 映射逻辑：将维度组合映射到 12 种预定义人格
+    const personalityMapping = {
+      'mask': (s) => s.E >= s.I && s.J >= s.P,
+      'hoard': (s) => s.I >= s.E && s.T >= s.F && s.J >= s.P,
+      'escape': (s) => s.I >= s.E && s.F >= s.T && s.P >= s.J,
+      'rebel': (s) => s.E >= s.I && s.P >= s.J && s.T >= s.F,
+      'edge': (s) => s.I >= s.E && s.F >= s.T && s.J >= s.P,
+      'crash': (s) => s.N >= s.S && s.P >= s.J && s.F >= s.T,
+      'chill': (s) => s.I >= s.E && s.S >= s.N && s.P >= s.J,
+      'clown': (s) => s.E >= s.I && s.S >= s.N && s.P >= s.J,
+      'mama': (s) => s.E >= s.I && s.F >= s.T && s.J >= s.P,
+      'hustle': (s) => s.S >= s.N && s.T >= s.F && s.J >= s.P,
+      'chaos': (s) => s.E >= s.I && s.P >= s.J && s.S >= s.N,
+      'awake': (s) => s.N >= s.S && s.P >= s.J && s.T >= s.F
+    };
+
+    let resultKey = 'edge'; // 默认值
+    for (const [key, check] of Object.entries(personalityMapping)) {
+      if (check(scores)) {
+        resultKey = key;
+        break;
+      }
+    }
+
+    setTimeout(() => finalizeResult(resultKey), 3500);
   } else {
     // 总分累计逻辑 (ObjTest)
     let totalScore = 0;
@@ -243,13 +264,13 @@ function finalizeResult(resultValue) {
   const pageType = getPageType();
   showPage('result');
   trackResultView();
-  
+
   if (pageType === 'soullab') {
     displaySoulLabResult(resultValue);
   } else {
     displayObjTestResult(resultValue);
   }
-  
+
   // 初始化评论区
   if (window.initComments) {
     window.initComments();
@@ -264,7 +285,7 @@ function displaySoulLabResult(type) {
   // 兼容不同的变量命名
   const dataStore = (typeof personalities !== 'undefined') ? personalities : (typeof personalityTypes !== 'undefined' ? personalityTypes : {});
   const personality = dataStore[type];
-  
+
   if (!personality) {
     console.error('未找到人格数据:', type);
     return;
@@ -341,85 +362,85 @@ function displayObjTestResult(score) {
 
 // 通用初始化
 document.addEventListener('DOMContentLoaded', () => {
-    // 背景粒子
-    const canvas = document.getElementById('particles-canvas');
-    if (canvas) {
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        resize();
-        window.addEventListener('resize', resize);
-        class Particle {
-            constructor() { this.reset(); }
-            reset() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 2 + 0.5;
-                this.speedX = (Math.random() - 0.5) * 0.3;
-                this.speedY = (Math.random() - 0.5) * 0.3;
-                this.opacity = Math.random() * 0.5 + 0.1;
-                this.hue = 250 + Math.random() * 60;
-            }
-            update() {
-                this.x += this.speedX; this.y += this.speedY;
-                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset();
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = `hsla(${this.hue}, 70%, 70%, ${this.opacity})`;
-                ctx.fill();
-            }
-        }
-        for (let i = 0; i < 60; i++) particles.push(new Particle());
-        function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => { p.update(); p.draw(); });
-            requestAnimationFrame(animate);
-        }
-        animate();
+  // 背景粒子
+  const canvas = document.getElementById('particles-canvas');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    resize();
+    window.addEventListener('resize', resize);
+    class Particle {
+      constructor() { this.reset(); }
+      reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 2 + 0.5;
+        this.speedX = (Math.random() - 0.5) * 0.3;
+        this.speedY = (Math.random() - 0.5) * 0.3;
+        this.opacity = Math.random() * 0.5 + 0.1;
+        this.hue = 250 + Math.random() * 60;
+      }
+      update() {
+        this.x += this.speedX; this.y += this.speedY;
+        if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset();
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${this.hue}, 70%, 70%, ${this.opacity})`;
+        ctx.fill();
+      }
     }
-    
-    // 初始加载参与人数
-    loadParticipantCount();
+    for (let i = 0; i < 60; i++) particles.push(new Particle());
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => { p.update(); p.draw(); });
+      requestAnimationFrame(animate);
+    }
+    animate();
+  }
 
-    // 检查是否自动开始
-    if (new URLSearchParams(window.location.search).get('start') === 'true') {
-        setTimeout(startTest, 500);
+  // 初始加载参与人数
+  loadParticipantCount();
+
+  // 检查是否自动开始
+  if (new URLSearchParams(window.location.search).get('start') === 'true') {
+    setTimeout(startTest, 500);
+  }
+
+  // 新增：键盘快捷键支持 (A, B, C, D / 1, 2, 3, 4)
+  window.addEventListener('keydown', (e) => {
+    // 仅在答题页生效
+    const quizPage = document.getElementById('quiz');
+    if (!quizPage || !quizPage.classList.contains('active')) return;
+
+    const key = e.key.toUpperCase();
+
+    // ABCD 映射
+    if (['A', 'B', 'C', 'D'].includes(key)) {
+      const index = key.charCodeAt(0) - 65;
+      if (questions[currentQuestion].options[index]) {
+        selectOption(index);
+      }
     }
 
-    // 新增：键盘快捷键支持 (A, B, C, D / 1, 2, 3, 4)
-    window.addEventListener('keydown', (e) => {
-        // 仅在答题页生效
-        const quizPage = document.getElementById('quiz');
-        if (!quizPage || !quizPage.classList.contains('active')) return;
+    // 数字键映射 (1, 2, 3, 4)
+    if (['1', '2', '3', '4'].includes(key)) {
+      const index = parseInt(key) - 1;
+      if (questions[currentQuestion].options[index]) {
+        selectOption(index);
+      }
+    }
 
-        const key = e.key.toUpperCase();
-        
-        // ABCD 映射
-        if (['A', 'B', 'C', 'D'].includes(key)) {
-            const index = key.charCodeAt(0) - 65;
-            if (questions[currentQuestion].options[index]) {
-                selectOption(index);
-            }
-        }
-        
-        // 数字键映射 (1, 2, 3, 4)
-        if (['1', '2', '3', '4'].includes(key)) {
-            const index = parseInt(key) - 1;
-            if (questions[currentQuestion].options[index]) {
-                selectOption(index);
-            }
-        }
+    // 左右键/退格键返回
+    if (key === 'ARROWLEFT' || key === 'BACKSPACE') {
+      prevQuestion();
+    }
 
-        // 左右键/退格键返回
-        if (key === 'ARROWLEFT' || key === 'BACKSPACE') {
-            prevQuestion();
-        }
-        
-        // 如果已经选了，按回车进下一题
-        if (key === 'ENTER' && answers[questions[currentQuestion].id] !== undefined) {
-          nextQuestion();
-        }
-    });
+    // 如果已经选了，按回车进下一题
+    if (key === 'ENTER' && answers[questions[currentQuestion].id] !== undefined) {
+      nextQuestion();
+    }
+  });
 });
