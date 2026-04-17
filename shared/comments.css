@@ -2,15 +2,12 @@
    Modern Comments System
    ============================== */
 
-:root {
-  --cmt-bg: rgba(255, 255, 255, 0.03);
-  --cmt-border: rgba(255, 255, 255, 0.08);
-  --cmt-primary: #a78bfa;
-  --cmt-text: rgba(255, 255, 255, 0.9);
-  --cmt-sub: rgba(255, 255, 255, 0.5);
-}
-
 .comments-wrapper {
+  --cmt-bg: var(--comments-bg, rgba(255, 255, 255, 0.03));
+  --cmt-border: var(--comments-border, rgba(255, 255, 255, 0.08));
+  --cmt-primary: var(--comments-accent, #a78bfa);
+  --cmt-text: var(--comments-text, rgba(255, 255, 255, 0.9));
+  --cmt-sub: var(--comments-muted, rgba(255, 255, 255, 0.5));
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
@@ -145,12 +142,19 @@
 }
 
 .comment-item.is-reply {
-  margin-left: 46px;
   border-bottom: none;
   padding-bottom: 15px;
   margin-top: 10px;
   border-left: 2px solid var(--cmt-border);
   padding-left: 15px;
+}
+
+.comment-replies {
+  margin-left: 46px;
+}
+
+.comment-replies .comment-replies {
+  margin-left: 20px;
 }
 
 .comment-item__avatar-box { flex-shrink: 0; }

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客体化测试 - 评论区</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../shared/auth.css">
+    <link rel="stylesheet" href="../shared/comments.css">
+    <style>
+        body {
+            background-color: #fdfbf7;
+            color: #4a4036;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .comments-container-page {
+            flex: 1;
+            padding: 80px 20px 40px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .nav-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            background: rgba(253, 251, 247, 0.82);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(212, 163, 115, 0.1);
+        }
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #8b7d6b;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+        .back-btn:hover {
+            color: #d4a373;
+        }
+        /* Ensure comments are visible on light background */
+        .comments-wrapper {
+            --comments-bg: rgba(255, 255, 255, 0.7);
+            --comments-border: rgba(212, 163, 115, 0.2);
+            --comments-heading: #5a4838;
+            --comments-text: #4a4036;
+            --comments-muted: #8b7d6b;
+            --comments-accent: #d4a373;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <div id="auth-status"></div>
+
+    <header class="nav-header">
+        <a href="index.html" class="back-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            返回测试
+        </a>
+    </header>
+
+    <main class="comments-container-page">
+        <div id="comments-section" data-page="objtest"></div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../shared/supabase-config.js"></script>
+    <script src="../shared/auth.js"></script>
+    <script src="../shared/comments.js"></script>
+    <script>
+        // 初始化评论
+        window.addEventListener('load', () => {
+            if (typeof initComments === 'function') initComments();
+        });
+    </script>
+</body>
+</html>

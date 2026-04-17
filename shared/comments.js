@@ -320,7 +320,22 @@ function renderCommentThread(comment) {
           <span>${replies.length} 条回复</span>
         </div>
         <div class="comment-replies ${isExpanded ? 'is-visible' : 'is-hidden'}">
-          ${replies.map(r => renderSingleComment(r, 1)).join('')}
+          ${replies.map(r => renderCommentThreadRecursive(r, 1)).join('')}
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderCommentThreadRecursive(comment, level = 1) {
+  const replies = getDirectReplies(comment.id);
+  // 对于深层回复，默认展开或者不显示切换按钮直接显示
+  return `
+    <div class="comment-nested-thread level-${level}">
+      ${renderSingleComment(comment, level)}
+      ${replies.length > 0 ? `
+        <div class="comment-replies">
+          ${replies.map(r => renderCommentThreadRecursive(r, level + 1)).join('')}
         </div>
       ` : ''}
     </div>

@@ -443,6 +443,10 @@
   background: rgba(167, 139, 250, 0.18);
 }
 
+.profile-emoji-grid.hidden {
+  display: none !important;
+}
+
 .profile-emoji-option.hidden {
   display: none !important;
 }

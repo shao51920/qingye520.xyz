@@ -1483,21 +1483,57 @@ function toggleEmojiGrid() {
   toggleBtn.textContent = isCurrentlyHidden ? '收起图标选择' : '展开图标选择';
 }
 
-function jumpToMyComments() {
-  const commentSection = document.getElementById('comments-section');
-  if (commentSection) {
-    closeProfileModal();
-    commentSection.scrollIntoView({ behavior: 'smooth' });
-    const inputArea = document.getElementById('comment-text');
-    if (inputArea) setTimeout(() => inputArea.focus(), 600);
-  } else {
-    // 智能判断跳转路径
-    const isSubDir = window.location.pathname.includes('/SoulLab/') || window.location.pathname.includes('/ObjTest/') || window.location.pathname.includes('/Snow/');
-    const targetPath = isSubDir ? '../SoulLab/index.html#comments-section' : 'SoulLab/index.html#comments-section';
-    
-    if (confirm('当前页面没有评论区，是否前往主测试页面查看回复？')) {
-      window.location.href = targetPath;
+async function jumpToMyComments() {
+  if (!currentUser) return;
+  
+  const saveBtn = document.querySelector('.sub-action-btn[onclick="jumpToMyComments()"]');
+  const originalText = saveBtn ? saveBtn.innerHTML : '';
+  if (saveBtn) saveBtn.innerHTML = '查询中...';
+
+  const client = getAuthClient();
+  try {
+    const { data, error } = await client
+      .from('comments')
+      .select('page_type')
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      alert('您尚未评论');
+      return;
     }
+
+    const latestType = data[0].page_type;
+    const currentContainer = document.getElementById('comments-section');
+    const currentPageType = currentContainer ? currentContainer.dataset.page : null;
+
+    if (currentPageType === latestType && currentContainer && window.location.pathname.includes('comments.html')) {
+      closeProfileModal();
+      currentContainer.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      closeProfileModal();
+      let targetPath = '';
+      if (latestType === 'objtest') {
+        targetPath = '/ObjTest/comments.html';
+      } else {
+        targetPath = '/SoulLab/comments.html';
+      }
+
+      // 处理相对路径
+      const isSubDir = window.location.pathname.includes('/SoulLab/') || window.location.pathname.includes('/ObjTest/') || window.location.pathname.includes('/Snow/');
+      if (isSubDir) {
+        window.location.href = '..' + targetPath;
+      } else {
+        window.location.href = '.' + targetPath;
+      }
+    }
+  } catch (err) {
+    alert('查询失败，请重试');
+  } finally {
+    if (saveBtn) saveBtn.innerHTML = originalText;
   }
 }
 
