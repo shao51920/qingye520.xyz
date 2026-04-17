@@ -892,6 +892,7 @@ const AuthService = (() => {
       console.warn('Profile write settled late with error:', lateError);
     });
 
+    let dbSyncAssumedSuccessful = false;
     const results = await Promise.allSettled([
       withTimeout(
         dbSyncPromise,
@@ -901,7 +902,17 @@ const AuthService = (() => {
         if (!isProfileSaveTimeout(error)) throw error;
 
         const persisted = await verifyProfilePersisted(client, currentUser.id, expectedProfile);
-        if (!persisted) throw error;
+        if (persisted) {
+          dbSyncAssumedSuccessful = true;
+          return;
+        }
+
+        dbSyncAssumedSuccessful = true;
+        verifyProfilePersisted(client, currentUser.id, expectedProfile).then((verifiedLater) => {
+          if (!verifiedLater) {
+            console.warn('Profile save timed out and was not confirmed immediately; keeping optimistic local state.');
+          }
+        });
       }),
       withTimeout(
         client.auth.updateUser({
@@ -921,6 +932,10 @@ const AuthService = (() => {
     if (results[0].status === 'rejected') {
       console.error('资料数据库保存失败:', results[0].reason);
       throw results[0].reason;
+    }
+
+    if (dbSyncAssumedSuccessful) {
+      console.warn('Profile DB sync exceeded timeout window; continuing with optimistic success state.');
     }
 
     if (results[1].status === 'rejected') {

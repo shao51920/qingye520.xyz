@@ -489,9 +489,8 @@ function highlightMentions(text) {
 }
 
 function showUserProfilePopup(userId) {
-  const profile = commentsProfileMap[userId] || {};
-  const isCurrentUser = currentUser?.id === userId;
-  const liveProfile = isCurrentUser && currentProfile ? currentProfile : profile;
+  const liveProfile = getCommentDisplayProfile(userId);
+  const avatarValue = liveProfile.avatar_url || getProfileAvatarValue(liveProfile);
   const bio = liveProfile.bio?.trim() || '这个人很懒，还没有写签名~';
   const popupId = 'user-profile-popup-' + Date.now();
   
@@ -501,7 +500,7 @@ function showUserProfilePopup(userId) {
     <div class="user-profile-popup-backdrop" onclick="closeUserProfilePopup('${popupId}')"></div>
     <div class="user-profile-popup">
       <button class="user-profile-popup-close" onclick="closeUserProfilePopup('${popupId}')">✕</button>
-      <div class="user-profile-popup-avatar">${getAvatarNodeHtml(liveProfile.avatar_url, userId, 'popup-avatar')}</div>
+      <div class="user-profile-popup-avatar">${getAvatarNodeHtml(avatarValue, userId, 'popup-avatar')}</div>
       <div class="user-profile-popup-name">${escapeHtml(liveProfile.nickname || '匿名用户')}</div>
       <div class="user-profile-popup-bio">${escapeHtml(bio)}</div>
     </div>
