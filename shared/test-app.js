@@ -70,7 +70,11 @@ async function loadParticipantCount() {
   const client = getAppSupabaseClient();
   const pageType = getPageType();
   const countEl = document.getElementById(`${pageType}-participant-count`);
-  if (!client || !countEl) return;
+  if (!countEl) return;
+  if (!client) {
+    renderParticipantCount(countEl, 0);
+    return;
+  }
 
   try {
     const { count, error } = await client
@@ -82,6 +86,7 @@ async function loadParticipantCount() {
     renderParticipantCount(countEl, count || 0);
   } catch (err) {
     console.error('Count load failed:', err);
+    renderParticipantCount(countEl, 0);
   }
 }
 

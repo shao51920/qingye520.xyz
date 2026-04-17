@@ -31,6 +31,7 @@ let otpCooldownSeconds = 0;
 const NETWORK_TIMEOUT_MS = 25000;
 const OTP_VERIFY_TIMEOUT_MS = 20000;
 const MIN_PASSWORD_LENGTH = 6;
+const PROFILE_SAVE_TIMEOUT_CODE = 'PROFILE_DB_SAVE_TIMEOUT';
 
 function getAuthClient() {
   if (typeof supabase !== 'undefined' && supabase?.auth) return supabase;
@@ -249,6 +250,62 @@ function withTimeout(promise, ms, message) {
   ]).finally(() => {
     if (timer) clearTimeout(timer);
   });
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isProfileSaveTimeout(error) {
+  const message = String(error?.message || '');
+  return message.includes(PROFILE_SAVE_TIMEOUT_CODE) || message.includes('淇濆瓨鍚屾鍒版暟鎹簱瓒呮椂');
+}
+
+function profileMatchesExpected(record, expectedProfile, userId) {
+  if (!record || typeof record !== 'object') return false;
+  if (String(record.nickname || '') !== String(expectedProfile.nickname || '')) return false;
+
+  if (Object.prototype.hasOwnProperty.call(record, 'bio')) {
+    if (String(record.bio || '') !== String(expectedProfile.bio || '')) return false;
+  }
+
+  const hasAvatarField = ['avatar_url', 'avatar', 'avatar_emoji'].some((field) =>
+    Object.prototype.hasOwnProperty.call(record, field)
+  );
+  if (!hasAvatarField) return true;
+
+  return getAvatarFromProfileRecord(record, userId) === normalizeAvatarValue(expectedProfile.avatar_url, userId);
+}
+
+async function verifyProfilePersisted(client, userId, expectedProfile) {
+  const retryDelays = [0, 900, 1400, 2200, 3200];
+
+  for (let attempt = 0; attempt < retryDelays.length; attempt += 1) {
+    if (retryDelays[attempt] > 0) {
+      await sleep(retryDelays[attempt]);
+    }
+
+    try {
+      const { data, error } = await withTimeout(
+        client
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle(),
+        6000,
+        '璇诲彇鐢ㄦ埛璧勬枡瓒呮椂'
+      );
+
+      if (error) throw error;
+      if (profileMatchesExpected(data, expectedProfile, userId)) {
+        return true;
+      }
+    } catch (verifyError) {
+      console.warn('Profile save verification retry failed:', verifyError);
+    }
+  }
+
+  return false;
 }
 
 function getAuthSubmitLabel(mode = authMode) {
@@ -792,12 +849,35 @@ const AuthService = (() => {
       });
     }
 
+    const expectedProfile = {
+      nickname: nextNickname,
+      bio: bio,
+      avatar_url: avatarValue
+    };
+
+    const dbSyncPromise = updateProfileCompat(
+      client,
+      currentUser.id,
+      nextNickname,
+      avatarValue,
+      currentUser.id,
+      bio
+    );
+    dbSyncPromise.catch((lateError) => {
+      console.warn('Profile write settled late with error:', lateError);
+    });
+
     const results = await Promise.allSettled([
       withTimeout(
-        updateProfileCompat(client, currentUser.id, nextNickname, avatarValue, currentUser.id, bio),
+        dbSyncPromise,
         NETWORK_TIMEOUT_MS,
         '保存同步到数据库超时'
-      ),
+      ).catch(async (error) => {
+        if (!isProfileSaveTimeout(error)) throw error;
+
+        const persisted = await verifyProfilePersisted(client, currentUser.id, expectedProfile);
+        if (!persisted) throw error;
+      }),
       withTimeout(
         client.auth.updateUser({
           data: {
