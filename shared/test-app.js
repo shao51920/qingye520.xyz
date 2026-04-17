@@ -378,4 +378,39 @@ document.addEventListener('DOMContentLoaded', () => {
     if (new URLSearchParams(window.location.search).get('start') === 'true') {
         setTimeout(startTest, 500);
     }
+
+    // 新增：键盘快捷键支持 (A, B, C, D / 1, 2, 3, 4)
+    window.addEventListener('keydown', (e) => {
+        // 仅在答题页生效
+        const quizPage = document.getElementById('quiz');
+        if (!quizPage || !quizPage.classList.contains('active')) return;
+
+        const key = e.key.toUpperCase();
+        
+        // ABCD 映射
+        if (['A', 'B', 'C', 'D'].includes(key)) {
+            const index = key.charCodeAt(0) - 65;
+            if (questions[currentQuestion].options[index]) {
+                selectOption(index);
+            }
+        }
+        
+        // 数字键映射 (1, 2, 3, 4)
+        if (['1', '2', '3', '4'].includes(key)) {
+            const index = parseInt(key) - 1;
+            if (questions[currentQuestion].options[index]) {
+                selectOption(index);
+            }
+        }
+
+        // 左右键/退格键返回
+        if (key === 'ARROWLEFT' || key === 'BACKSPACE') {
+            prevQuestion();
+        }
+        
+        // 如果已经选了，按回车进下一题
+        if (key === 'ENTER' && answers[questions[currentQuestion].id] !== undefined) {
+          nextQuestion();
+        }
+    });
 });
