@@ -426,9 +426,9 @@
 .profile-emoji-option {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 10px;
-  height: 34px;
+  height: 32px;
   background: rgba(255, 255, 255, 0.04);
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1;
   padding: 0;
   display: flex;
@@ -451,7 +451,7 @@
 /* Profile Emoji Grid Expansion */
 .profile-emoji-grid-wrapper {
   overflow: hidden;
-  max-height: 44px; /* Show exactly one row */
+  max-height: 40px; /* Show exactly one row */
   transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   margin-bottom: 8px;
 }
