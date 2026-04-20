@@ -1,687 +1,1326 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>觉醒诗社 · 管理后台</title>
+  <title>档案室 · 管理控制台</title>
+  <meta name="description" content="管理控制台 — 数据真相，一览无余。">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500&display=swap"
+    rel="stylesheet">
   <style>
+    /* ═══════════════════════════════════════════
+       Design Kernel: 冷酷档案室 (Cold Archive)
+       "剥离一切伪装，只看数据真相。"
+       ═══════════════════════════════════════════ */
+
     :root {
-      --bg: #0a0a1a;
-      --card: rgba(255,255,255,0.04);
-      --border: rgba(255,255,255,0.08);
-      --accent: #a78bfa;
+      --void: #0b0b0b;
+      --surface: #111111;
+      --line: rgba(255, 255, 255, 0.06);
+      --line-hover: rgba(255, 255, 255, 0.12);
+      --text-primary: rgba(255, 255, 255, 0.82);
+      --text-secondary: rgba(255, 255, 255, 0.38);
+      --text-ghost: rgba(255, 255, 255, 0.18);
+      --accent: #c8c8c8;
+      --accent-num: #e0e0e0;
       --danger: #f87171;
-      --text: rgba(255,255,255,0.85);
-      --text-dim: rgba(255,255,255,0.45);
+      --warn: #fbbf24;
+      --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
     }
-    * { margin:0; padding:0; box-sizing:border-box; }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    ::selection {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    html,
     body {
-      font-family: 'Noto Sans SC', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
+      height: 100%;
+      background: var(--void);
+      color: var(--text-primary);
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
-    .admin-header {
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--border);
+
+    /* ── Auth Guard: 拦截屏 ── */
+    #guard-wall {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: var(--void);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      transition: opacity 0.4s ease;
+    }
+
+    #guard-wall.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .guard-text {
+      font-size: 12px;
+      color: var(--text-secondary);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .guard-dots::after {
+      content: '';
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+
+    @keyframes dots {
+      0% {
+        content: '';
+      }
+
+      25% {
+        content: '.';
+      }
+
+      50% {
+        content: '..';
+      }
+
+      75% {
+        content: '...';
+      }
+    }
+
+    /* ── 顶栏 ── */
+    .archive-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(11, 11, 11, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
-    .admin-header h1 {
-      font-size: 1.08rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #a78bfa, #f472b6);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+
+    .archive-title {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
     }
-    .admin-header .admin-actions {
-      display: flex; gap: 10px; align-items: center;
+
+    .archive-title span {
+      color: var(--text-primary);
+      font-weight: 500;
     }
-    .admin-header button, .admin-header a {
-      padding: 5px 12px;
-      border-radius: 7px;
-      font-size: 0.78rem;
-      cursor: pointer;
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: var(--text);
-      text-decoration: none;
-      transition: all 0.2s;
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
-    .admin-header button:hover, .admin-header a:hover {
-      border-color: var(--accent);
-    }
-    .admin-login {
-      max-width: 360px;
-      margin: 72px auto;
-      padding: 28px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      text-align: center;
-    }
-    .admin-login h2 { margin-bottom: 18px; font-size: 1.08rem; }
-    .admin-login input {
-      width: 100%;
-      padding: 9px 12px;
-      margin-bottom: 10px;
-      background: rgba(0,0,0,0.3);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: white;
-      font-size: 0.9rem;
-      outline: none;
-    }
-    .admin-login input:focus { border-color: var(--accent); }
-    .admin-login button {
-      width: 100%;
-      padding: 10px;
-      background: linear-gradient(135deg, #a78bfa, #6366f1);
-      border: none;
-      border-radius: 10px;
-      color: white;
-      font-weight: 600;
-      font-size: 0.95rem;
-      cursor: pointer;
-    }
-    .admin-login .error { color: var(--danger); font-size: 0.82rem; margin-top: 8px; }
-    .admin-body { padding: 16px 18px 18px; max-width: 1100px; margin: 0 auto; }
-    .tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--card); border-radius: 10px; padding: 4px; }
-    .tabs button {
-      flex: 1;
-      padding: 8px;
+
+    .header-actions a,
+    .header-actions button {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-secondary);
       background: none;
       border: none;
-      color: var(--text-dim);
-      font-size: 0.82rem;
-      border-radius: 8px;
       cursor: pointer;
-      transition: all 0.2s;
+      letter-spacing: 0.08em;
+      transition: color 0.2s;
+      text-decoration: none;
     }
-    .tabs button.active { background: rgba(167,139,250,0.2); color: white; font-weight: 600; }
-    .stats {
+
+    .header-actions a:hover,
+    .header-actions button:hover {
+      color: var(--text-primary);
+    }
+
+    /* ── 主容器 ── */
+    .archive-body {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    /* ── Tab 切换 ── */
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 28px;
+    }
+
+    .tab-item {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      background: none;
+      border: none;
+      border-bottom: 1px solid transparent;
+      padding: 10px 20px;
+      margin-bottom: -1px;
+      cursor: pointer;
+      transition: color 0.25s, border-color 0.25s;
+    }
+
+    .tab-item:hover {
+      color: var(--text-primary);
+    }
+
+    .tab-item.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ── 面板容器 ── */
+    .panel {
+      display: none;
+      animation: panelIn 0.3s ease;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    @keyframes panelIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ── Dashboard 统计卡片 ── */
+    .stat-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
-      gap: 10px;
-      margin-bottom: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      margin-bottom: 20px;
     }
-    .stat-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px 10px;
+
+    .stat-cell {
+      background: var(--surface);
+      padding: 22px 16px;
       text-align: center;
     }
-    .stat-card .stat-num { font-size: 1.45rem; font-weight: 700; color: var(--accent); line-height: 1.1; }
-    .stat-card .stat-label { font-size: 0.72rem; color: var(--text-dim); margin-top: 3px; }
-    .status-panel {
-      margin-bottom: 12px;
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: linear-gradient(135deg, rgba(167,139,250,0.14), rgba(255,255,255,0.03));
-      color: rgba(255,255,255,0.78);
-      font-size: 0.76rem;
-      line-height: 1.55;
+
+    .stat-cell:hover {
+      background: rgba(255, 255, 255, 0.02);
     }
-    .tool-row {
-      display: grid;
-      grid-template-columns: 1.6fr repeat(2, minmax(130px, 1fr)) auto;
-      gap: 8px;
-      margin-bottom: 10px;
-      align-items: center;
+
+    .stat-number {
+      font-family: var(--mono);
+      font-size: 26px;
+      font-weight: 300;
+      color: var(--accent-num);
+      line-height: 1;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+      transition: color 0.3s;
     }
-    .tool-row.users {
-      grid-template-columns: 1fr auto;
+
+    .stat-cell:hover .stat-number {
+      color: #fff;
     }
-    .tool-row input, .tool-row select {
-      width: 100%;
-      height: 32px;
-      border-radius: 7px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.03);
-      color: var(--text);
-      padding: 0 10px;
-      outline: none;
-      font-size: 0.76rem;
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--text-secondary);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
     }
-    .tool-row input:focus, .tool-row select:focus {
-      border-color: var(--accent);
+
+    /* ── 系统状态行 ── */
+    .meta-line {
+      font-size: 11px;
+      color: var(--text-ghost);
+      padding: 12px 0;
+      border-top: 1px solid var(--line);
+      letter-spacing: 0.04em;
+      line-height: 1.7;
     }
-    .tool-row button {
-      height: 32px;
-      padding: 0 12px;
-      border-radius: 7px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: var(--text);
-      cursor: pointer;
-      font-size: 0.76rem;
+
+    .meta-line strong {
+      color: var(--text-secondary);
+      font-weight: 400;
     }
-    .tool-row button:hover { border-color: var(--accent); }
-    .table-wrap {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: auto;
-      background: rgba(255,255,255,0.02);
+
+    /* ── 表格 ── */
+    .data-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
-    table {
+
+    .data-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.8rem;
-      min-width: 720px;
+      font-family: var(--mono);
+      font-size: 12px;
+      min-width: 600px;
     }
-    th, td {
-      padding: 9px 10px;
+
+    .data-table thead th {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-ghost);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
       text-align: left;
-      border-bottom: 1px solid var(--border);
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+      user-select: none;
     }
-    th { color: var(--text-dim); font-weight: 500; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; }
-    .btn-sm {
-      padding: 4px 9px;
-      border-radius: 6px;
-      font-size: 0.72rem;
-      cursor: pointer;
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: var(--text);
-      transition: all 0.2s;
+
+    .data-table tbody td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      color: var(--text-primary);
+      vertical-align: middle;
+      transition: background 0.15s;
     }
-    .btn-danger { border-color: rgba(248,113,113,0.3); color: var(--danger); }
-    .btn-danger:hover { background: rgba(248,113,113,0.15); }
-    .btn-warn { border-color: rgba(251,191,36,0.3); color: #fbbf24; }
-    .btn-warn:hover { background: rgba(251,191,36,0.1); }
-    .comment-img-thumb { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; cursor: pointer; }
-    .badge {
+
+    .data-table tbody tr:hover td {
+      background: rgba(255, 255, 255, 0.015);
+    }
+
+    .data-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .data-table tbody tr.row-hidden td {
+      opacity: 0.4;
+    }
+
+    /* 单元格内的次要文字 */
+    .cell-dim {
+      color: var(--text-secondary);
+    }
+
+    .cell-mono {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cell-truncate {
+      max-width: 240px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cell-user {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      padding: 2px 7px;
-      border-radius: 999px;
-      font-size: 0.68rem;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.03);
+      gap: 8px;
     }
+
+    /* ── 头像 ── */
     .avatar-dot {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.06);
-      font-size: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    img.avatar-dot {
       object-fit: cover;
     }
-    .cell-user {
+
+    /* ── 评论图片缩略图 ── */
+    .comment-img-thumb {
+      width: 36px;
+      height: 36px;
+      border-radius: 4px;
+      object-fit: cover;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      transition: opacity 0.2s;
+    }
+
+    .comment-img-thumb:hover {
+      opacity: 0.7;
+    }
+
+    /* 极简标签 */
+    .tag {
+      display: inline-block;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      border: 1px solid var(--line);
+      padding: 1px 8px;
+      white-space: nowrap;
+    }
+
+    .tag--accent {
+      color: var(--accent-num);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .tag--warn {
+      color: var(--warn);
+      border-color: rgba(251, 191, 36, 0.2);
+    }
+
+    .tag--danger {
+      color: var(--danger);
+      border-color: rgba(248, 113, 113, 0.2);
+    }
+
+    /* ── 操作按钮 ── */
+    .btn-sm {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      padding: 3px 10px;
+      border: 1px solid var(--line);
+      background: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-sm:hover {
+      color: var(--text-primary);
+      border-color: var(--line-hover);
+    }
+
+    .btn-sm--warn {
+      color: var(--warn);
+      border-color: rgba(251, 191, 36, 0.25);
+    }
+
+    .btn-sm--warn:hover {
+      background: rgba(251, 191, 36, 0.08);
+    }
+
+    .btn-sm--danger {
+      color: var(--danger);
+      border-color: rgba(248, 113, 113, 0.25);
+    }
+
+    .btn-sm--danger:hover {
+      background: rgba(248, 113, 113, 0.08);
+    }
+
+    .btn-gap {
       display: inline-flex;
-      align-items: center;
       gap: 6px;
     }
-    .empty { text-align: center; padding: 28px 14px; color: var(--text-dim); font-size: 0.82rem; }
-    #admin-app { display: none; }
+
+    /* ── 加载提示 & 空态 ── */
+    .loading-hint,
+    .empty-state {
+      padding: 40px 0;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-ghost);
+      letter-spacing: 0.12em;
+    }
+
+    .empty-state {
+      padding: 48px 0;
+    }
+
+    /* ── 工具栏 ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .toolbar-input,
+    .toolbar-select {
+      font-family: var(--mono);
+      font-size: 11px;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--line);
+      padding: 8px 0;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .toolbar-input {
+      flex: 1;
+      color: var(--text-primary);
+      letter-spacing: 0.04em;
+    }
+
+    .toolbar-input::placeholder {
+      color: var(--text-ghost);
+    }
+
+    .toolbar-select {
+      color: var(--text-secondary);
+      padding: 8px 4px;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .toolbar-input:focus,
+    .toolbar-select:focus {
+      border-bottom-color: var(--accent);
+    }
+
+    .toolbar-select option {
+      background: var(--surface);
+      color: var(--text-primary);
+    }
+
+    .toolbar-btn {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      background: none;
+      border: 1px solid var(--line);
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .toolbar-btn:hover {
+      color: var(--text-primary);
+      border-color: var(--line-hover);
+    }
+
+    /* ── 分页/底部信息 ── */
+    .table-footer {
+      padding: 10px 0;
+      font-size: 10px;
+      color: var(--text-ghost);
+      text-align: right;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    /* ── Responsive ── */
     @media (max-width: 640px) {
-      .admin-header {
-        padding: 12px 14px;
-        align-items: flex-start;
+      .archive-header {
+        padding: 12px 16px;
         flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
       }
-      .admin-header .admin-actions {
+
+      .header-actions {
         width: 100%;
         justify-content: space-between;
       }
-      .admin-body { padding: 12px; }
-      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .tool-row { grid-template-columns: 1fr; }
-      .tool-row.users { grid-template-columns: 1fr; }
-      table { font-size: 0.74rem; min-width: 620px; }
-      th, td { padding: 7px 6px; }
+
+      .archive-body {
+        padding: 20px 16px 48px;
+      }
+
+      .stat-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stat-cell {
+        padding: 16px 10px;
+      }
+
+      .stat-number {
+        font-size: 20px;
+      }
+
+      .stat-label {
+        font-size: 9px;
+      }
+
+      .tab-item {
+        padding: 8px 14px;
+        font-size: 10px;
+      }
+
+      .toolbar {
+        flex-wrap: wrap;
+      }
+
+      .toolbar-input {
+        min-width: 0;
+      }
+
+      .data-table {
+        font-size: 11px;
+        min-width: 700px;
+      }
+
+      .data-table thead th,
+      .data-table tbody td {
+        padding: 7px 8px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .stat-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* ── 覆盖 layout.js 注入的页脚样式 ── */
+    footer.global-footer {
+      color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    /* 隐藏 layout.js 注入的右上角 auth-status（admin 页面自行管理） */
+    #auth-status {
+      display: none !important;
     }
   </style>
 </head>
+
 <body>
-  <!-- 登录页 -->
-  <div id="admin-login" class="admin-login">
-    <h2>🔐 管理后台登录</h2>
-    <input type="email" id="login-email" placeholder="管理员邮箱" autocomplete="email">
-    <input type="password" id="login-password" placeholder="密码" autocomplete="current-password">
-    <button onclick="adminLogin()">登录</button>
-    <p class="error" id="login-error"></p>
+
+  <!-- Auth Guard 拦截层：验证通过前遮住一切 -->
+  <div id="guard-wall">
+    <div class="guard-text">身份验证中<span class="guard-dots"></span></div>
   </div>
 
-  <!-- 管理主体 -->
-  <div id="admin-app">
-    <div class="admin-header">
-      <h1>觉醒诗社 · 管理后台</h1>
-      <div class="admin-actions">
-        <a href="../index.html">← 返回前台</a>
-        <button onclick="adminLogout()">退出</button>
-      </div>
+  <!-- 顶栏 -->
+  <header class="archive-header" id="archive-header" style="display:none;">
+    <div class="archive-title">档案室 · <span>管理控制台</span></div>
+    <div class="header-actions">
+      <span id="header-user" class="cell-dim"></span>
+      <a href="../index.html">← 返回前台</a>
+      <button onclick="doLogout()">退出</button>
     </div>
+  </header>
 
-    <div class="admin-body">
-      <div class="stats" id="stats"></div>
-      <div class="status-panel" id="status-panel">系统状态加载中...</div>
+  <!-- 主体 -->
+  <main class="archive-body" id="archive-main" style="display:none;">
 
-      <div class="tabs">
-        <button class="active" onclick="switchTab('comments', this)">评论管理</button>
-        <button onclick="switchTab('users', this)">用户管理</button>
+    <!-- Tab Bar -->
+    <nav class="tab-bar" id="tab-bar">
+      <button class="tab-item active" data-tab="dashboard" onclick="switchPanel('dashboard', this)">全局真理</button>
+      <button class="tab-item" data-tab="comments" onclick="switchPanel('comments', this)">评论管理</button>
+      <button class="tab-item" data-tab="users" onclick="switchPanel('users', this)">灵魂档案</button>
+      <button class="tab-item" data-tab="results" onclick="switchPanel('results', this)">测试切片</button>
+    </nav>
+
+    <!-- Panel 1: Dashboard -->
+    <section class="panel active" id="panel-dashboard">
+      <div class="stat-grid" id="stat-grid">
+        <div class="stat-cell">
+          <div class="stat-number" id="s-users">—</div>
+          <div class="stat-label">注册用户</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-number" id="s-comments">—</div>
+          <div class="stat-label">总评论数</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-number" id="s-soullab-comments">—</div>
+          <div class="stat-label">人格测试评论</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-number" id="s-obj-comments">—</div>
+          <div class="stat-label">客体化评论</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-number" id="s-hidden">—</div>
+          <div class="stat-label">已隐藏评论</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-number" id="s-admins">—</div>
+          <div class="stat-label">管理员</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-number" id="s-soullab">—</div>
+          <div class="stat-label">灵性测试参与</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-number" id="s-objtest">—</div>
+          <div class="stat-label">客体化测试参与</div>
+        </div>
       </div>
+      <div class="meta-line" id="dash-meta">档案加载中...</div>
+    </section>
 
-      <div id="comments-toolbar" class="tool-row">
-        <input id="comment-search" placeholder="搜索评论内容或昵称（实时过滤）" oninput="renderComments()">
-        <select id="comment-page-filter" onchange="renderComments()">
+    <!-- Panel 2: Comments -->
+    <section class="panel" id="panel-comments">
+      <div class="toolbar">
+        <input class="toolbar-input" id="comment-search" type="text"
+          placeholder="搜索评论内容或昵称..." oninput="renderComments()">
+        <select class="toolbar-select" id="comment-page-filter" onchange="renderComments()">
           <option value="all">全部来源</option>
           <option value="soullab">灵性测试</option>
           <option value="objtest">客体化测评</option>
         </select>
-        <select id="comment-status-filter" onchange="renderComments()">
+        <select class="toolbar-select" id="comment-status-filter" onchange="renderComments()">
           <option value="all">全部状态</option>
           <option value="visible">仅正常</option>
           <option value="hidden">仅隐藏</option>
         </select>
-        <button onclick="loadComments()">刷新评论</button>
+        <button class="toolbar-btn" onclick="fetchComments()">刷新</button>
       </div>
-
-      <div id="users-toolbar" class="tool-row users" style="display:none">
-        <input id="user-search" placeholder="搜索昵称 / 角色 / 注册日期" oninput="renderUsers()">
-        <button onclick="loadUsers()">刷新用户</button>
+      <div id="comments-table-area">
+        <div class="loading-hint">评论档案加载中...</div>
       </div>
+    </section>
 
-      <div id="tab-comments"></div>
-      <div id="tab-users" style="display:none"></div>
-    </div>
-  </div>
+    <!-- Panel 3: Users -->
+    <section class="panel" id="panel-users">
+      <div class="toolbar">
+        <input class="toolbar-input" id="user-search" type="text"
+          placeholder="搜索昵称 / 邮箱 / 角色 / 注册日期..." oninput="renderUsers()">
+        <button class="toolbar-btn" onclick="fetchUsers()">刷新</button>
+      </div>
+      <div id="users-table-area">
+        <div class="loading-hint">灵魂档案加载中...</div>
+      </div>
+    </section>
 
+    <!-- Panel 4: Test Results -->
+    <section class="panel" id="panel-results">
+      <div class="toolbar">
+        <input class="toolbar-input" id="result-search" type="text"
+          placeholder="搜索用户 / 测试类型 / 结果 ..." oninput="renderResults()">
+        <button class="toolbar-btn" onclick="fetchResults()">刷新</button>
+      </div>
+      <div id="results-table-area">
+        <div class="loading-hint">测试切片加载中...</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ╔══════════════════════════════════════════╗
+       ║  全局脚本引入（必须按此顺序）               ║
+       ╚══════════════════════════════════════════╝ -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../shared/supabase-config.js"></script>
+  <script src="../shared/auth.js"></script>
+  <script src="../shared/layout.js"></script>
+
   <script>
-  window.db = window.supabase.createClient(
-    'https://xcwdgwvtgbqcsslbgtpy.supabase.co',
-    'sb_publishable_g5USxyN0qcqv9peaZE_irQ_B3QIPV_H'
-  );
+    /* ═══════════════════════════════════════════
+       Admin Console — 冷酷档案室 核心逻辑
+       ═══════════════════════════════════════════ */
+    (function () {
+      'use strict';
 
-  const db = window.db;
-  let adminUser = null;
-  let commentCache = [];
-  let userCache = [];
-  let resultViewCount = 0;
-  let commentProfileMap = {};
+      // ╔════════════════════════════════════════╗
+      // ║  ★ 管理员邮箱白名单（安全防线）           ║
+      // ║  在此处修改为你的管理员邮箱               ║
+      // ╚════════════════════════════════════════╝
+      const ADMIN_EMAILS = [
+        'qingye51920@gmail.com'   // ← 请替换为你的真实管理员邮箱
+      ];
 
-  function hashSeed(input) {
-    const text = String(input || '');
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      hash = (hash << 5) - hash + text.charCodeAt(i);
-      hash |= 0;
-    }
-    return Math.abs(hash);
-  }
+      const guardWall = document.getElementById('guard-wall');
+      const headerEl = document.getElementById('archive-header');
+      const mainEl = document.getElementById('archive-main');
 
-  function pickEmoji(seed) {
-    const emojis = ['🙂', '😄', '😎', '🦊', '🐼', '🐶', '🐱', '🌙', '✨', '🍀', '🎭', '🧠'];
-    return emojis[hashSeed(seed) % emojis.length];
-  }
+      let adminUser = null;
+      let usersCache = [];
+      let commentCache = [];
+      let resultsCache = [];
+      let commentProfileMap = {};
+      let profilesMap = {};
 
-  function renderAdminAvatar(avatarValue, seed) {
-    if (typeof avatarValue === 'string' && avatarValue.startsWith('emoji:')) {
-      return `<span class="avatar-dot">${escapeH(avatarValue.slice(6) || pickEmoji(seed))}</span>`;
-    }
-    if (typeof avatarValue === 'string' && /^(https?:\/\/|data:image\/)/.test(avatarValue) && !avatarValue.includes('api.dicebear.com')) {
-      return `<img class="avatar-dot" src="${escapeAttr(avatarValue)}" alt="">`;
-    }
-    return `<span class="avatar-dot">${pickEmoji(seed)}</span>`;
-  }
+      // ── 核心工具 ──
+      const db = () => window.supabaseClient || window.db || null;
+      const _escDiv = document.createElement('div');
+      const esc = t => { _escDiv.textContent = String(t ?? ''); return _escDiv.innerHTML; };
+      const escAttr = v => String(v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-  function getAdminAvatarValue(profile) {
-    if (!profile || typeof profile !== 'object') return '';
-    if (typeof profile.avatar_url === 'string' && profile.avatar_url) return profile.avatar_url;
-    if (typeof profile.avatar === 'string' && profile.avatar) return profile.avatar;
-    if (typeof profile.avatar_emoji === 'string' && profile.avatar_emoji) return `emoji:${profile.avatar_emoji}`;
-    return '';
-  }
-
-  function hasAdminMetadata(user) {
-    return Boolean(
-      user?.app_metadata?.role === 'admin' ||
-      user?.app_metadata?.is_admin === true ||
-      user?.user_metadata?.is_admin === true
-    );
-  }
-
-  function isMissingCommentsTable(error) {
-    const msg = String(error?.message || '');
-    return msg.includes("Could not find the table 'public.comments'") || msg.includes('PGRST205');
-  }
-
-  async function loadProfilesByIds(ids) {
-    const uniqueIds = [...new Set((ids || []).filter(Boolean))];
-    if (uniqueIds.length === 0) {
-      commentProfileMap = {};
-      return;
-    }
-
-    const { data, error } = await db
-      .from('profiles')
-      .select('*')
-      .in('id', uniqueIds);
-
-    if (error) throw error;
-    commentProfileMap = Object.fromEntries((data || []).map(profile => [profile.id, profile]));
-  }
-
-  async function getProfileAdminState(user) {
-    if (!user?.id) return false;
-
-    await db.from('profiles').upsert({
-      id: user.id,
-      email: user.email || '',
-      nickname: user.user_metadata?.nickname || '管理员'
-    });
-
-    const { data: profile } = await db
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    return profile?.is_admin === true;
-  }
-
-  async function adminLogin() {
-    const email = document.getElementById('login-email').value.trim();
-    const password = document.getElementById('login-password').value;
-    const errorEl = document.getElementById('login-error');
-    errorEl.textContent = '';
-
-    const { data, error } = await db.auth.signInWithPassword({ email, password });
-    if (error) {
-      if (error.message?.includes('Email not confirmed')) {
-        errorEl.textContent = '登录失败：邮箱未验证，请先完成邮箱验证。';
-      } else if (error.message?.includes('Invalid login')) {
-        errorEl.textContent = '登录失败：邮箱或密码错误。';
-      } else {
-        errorEl.textContent = `登录失败：${error.message}`;
+      // ── 时间格式化 ──
+      const _p = n => String(n).padStart(2, '0');
+      function fmtDt(isoStr, withTime) {
+        if (!isoStr) return '—';
+        const d = new Date(isoStr);
+        const date = `${d.getFullYear()}-${_p(d.getMonth() + 1)}-${_p(d.getDate())}`;
+        return withTime ? `${date} ${_p(d.getHours())}:${_p(d.getMinutes())}` : date;
       }
-      return;
-    }
-
-    const isAdmin = await getProfileAdminState(data.user) || hasAdminMetadata(data.user);
-    if (!isAdmin) {
-      errorEl.textContent = '当前账号不是管理员。';
-      await db.auth.signOut();
-      return;
-    }
-
-    adminUser = data.user;
-    document.getElementById('admin-login').style.display = 'none';
-    document.getElementById('admin-app').style.display = 'block';
-    loadDashboard();
-  }
-
-  async function adminLogout() {
-    await db.auth.signOut();
-    location.reload();
-  }
-
-  async function checkSession() {
-    const { data: { session } } = await db.auth.getSession();
-    if (!session) return;
-    const isAdmin = await getProfileAdminState(session.user) || hasAdminMetadata(session.user);
-    if (isAdmin) {
-      adminUser = session.user;
-      document.getElementById('admin-login').style.display = 'none';
-      document.getElementById('admin-app').style.display = 'block';
-      loadDashboard();
-    }
-  }
-  checkSession();
-
-  async function loadDashboard() {
-    await Promise.all([loadStats(), loadComments(), loadUsers()]);
-  }
-
-  async function loadStats() {
-    const [{ count: userCount }, { count: adminCount }] = await Promise.all([
-      db.from('profiles').select('*', { count: 'exact', head: true }),
-      db.from('profiles').select('*', { count: 'exact', head: true }).eq('is_admin', true)
-    ]);
-
-    let commentCount = 0;
-    let soullabCount = 0;
-    let objCount = 0;
-    let hiddenCount = 0;
-    let commentsUnavailable = false;
-
-    const commentRes = await db.from('comments').select('*', { count: 'exact', head: true });
-    if (commentRes.error) {
-      commentsUnavailable = isMissingCommentsTable(commentRes.error);
-    } else {
-      commentCount = commentRes.count || 0;
-      const [soullabRes, objRes, hiddenRes] = await Promise.all([
-        db.from('comments').select('*', { count: 'exact', head: true }).eq('page_type', 'soullab'),
-        db.from('comments').select('*', { count: 'exact', head: true }).eq('page_type', 'objtest'),
-        db.from('comments').select('*', { count: 'exact', head: true }).eq('is_hidden', true)
-      ]);
-      soullabCount = soullabRes.count || 0;
-      objCount = objRes.count || 0;
-      hiddenCount = hiddenRes.count || 0;
-    }
-
-    const resultViewRes = await db.from('result_views').select('*', { count: 'exact', head: true });
-    resultViewCount = resultViewRes.error ? 0 : (resultViewRes.count || 0);
-
-    document.getElementById('stats').innerHTML = `
-      <div class="stat-card"><div class="stat-num">${userCount || 0}</div><div class="stat-label">注册用户</div></div>
-      <div class="stat-card"><div class="stat-num">${commentCount || 0}</div><div class="stat-label">总评论数</div></div>
-      <div class="stat-card"><div class="stat-num">${soullabCount || 0}</div><div class="stat-label">人格测试评论</div></div>
-      <div class="stat-card"><div class="stat-num">${objCount || 0}</div><div class="stat-label">客体化评论</div></div>
-      <div class="stat-card"><div class="stat-num">${hiddenCount || 0}</div><div class="stat-label">已隐藏评论</div></div>
-      <div class="stat-card"><div class="stat-num">${adminCount || 0}</div><div class="stat-label">管理员</div></div>
-      <div class="stat-card"><div class="stat-num">${resultViewCount || 0}</div><div class="stat-label">结果浏览量</div></div>
-    `;
-
-    const statusEl = document.getElementById('status-panel');
-    if (statusEl) {
-      statusEl.innerHTML = `
-        当前登录：<strong>${escapeH(adminUser?.email || '未知')}</strong> ·
-        数据刷新时间：<strong>${new Date().toLocaleString('zh-CN')}</strong>
-      `;
-      if (commentsUnavailable) {
-        statusEl.innerHTML += '<br>评论状态：<strong>comments 表缺失，评论相关功能当前不可用。</strong>';
+      function fmtShort(isoStr) {
+        if (!isoStr) return '—';
+        return new Date(isoStr).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       }
-      if (resultViewRes.error) {
-        statusEl.innerHTML += '<br>参与统计状态：<strong>result_views 表缺失，测试页参与人数会回退到评论数。</strong>';
+
+      // ── 头像渲染 ──
+      const EMOJIS = ['🙂', '😄', '😎', '🦊', '🐼', '🐶', '🐱', '🌙', '✨', '🍀', '🎭', '🧠'];
+      function pickEmoji(seed) {
+        let h = 0; const s = String(seed || '');
+        for (let i = 0; i < s.length; i++) { h = (h << 5) - h + s.charCodeAt(i); h |= 0; }
+        return EMOJIS[Math.abs(h) % EMOJIS.length];
       }
-    }
-  }
 
-  async function loadComments() {
-    const { data: comments, error } = await db
-      .from('comments')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(300);
-
-    const container = document.getElementById('tab-comments');
-    if (error) {
-      if (container && isMissingCommentsTable(error)) {
-        container.innerHTML = '<p class="empty">comments 表缺失，评论管理暂不可用。</p>';
-        return;
+      function getAvatarValue(p) {
+        if (!p || typeof p !== 'object') return '';
+        return p.avatar_url || p.avatar || (p.avatar_emoji ? `emoji:${p.avatar_emoji}` : '');
       }
-      container.innerHTML = `<p class="empty">加载评论失败：${escapeH(error.message || '未知错误')}</p>`;
-      return;
-    }
 
-    commentCache = comments || [];
-    await loadProfilesByIds(commentCache.map(comment => comment.user_id));
-    renderComments();
-  }
+      function renderAvatar(val, seed) {
+        if (typeof val === 'string' && val.startsWith('emoji:'))
+          return `<span class="avatar-dot">${esc(val.slice(6) || pickEmoji(seed))}</span>`;
+        if (typeof val === 'string' && /^(https?:\/\/|data:image\/)/.test(val) && !val.includes('api.dicebear.com'))
+          return `<img class="avatar-dot" src="${escAttr(val)}" alt="">`;
+        return `<span class="avatar-dot">${pickEmoji(seed)}</span>`;
+      }
 
-  function renderComments() {
-    const container = document.getElementById('tab-comments');
-    const search = (document.getElementById('comment-search')?.value || '').trim().toLowerCase();
-    const pageFilter = document.getElementById('comment-page-filter')?.value || 'all';
-    const statusFilter = document.getElementById('comment-status-filter')?.value || 'all';
+      // ── 批量拉取 profiles ──
+      async function fetchProfileMap(ids) {
+        const unique = [...new Set((ids || []).filter(Boolean))];
+        if (!unique.length) return {};
+        try {
+          const { data } = await db().from('profiles').select('*').in('id', unique);
+          return Object.fromEntries((data || []).map(p => [p.id, p]));
+        } catch (_) { return {}; }
+      }
 
-    const rows = (commentCache || []).filter(comment => {
-      const profile = commentProfileMap[comment.user_id] || {};
-      const nickname = (profile.nickname || '').toLowerCase();
-      const content = (comment.content || '').toLowerCase();
-      const matchSearch = !search || nickname.includes(search) || content.includes(search);
-      const matchPage = pageFilter === 'all' || comment.page_type === pageFilter;
-      const matchStatus =
-        statusFilter === 'all' ||
-        (statusFilter === 'hidden' && comment.is_hidden) ||
-        (statusFilter === 'visible' && !comment.is_hidden);
-      return matchSearch && matchPage && matchStatus;
-    });
+      // ── 表检测 ──
+      function isMissingTable(err, name) {
+        const m = String(err?.message || '');
+        return m.includes(`'public.${name}'`) || m.includes('PGRST205') || m.includes(name);
+      }
 
-    if (rows.length === 0) {
-      container.innerHTML = '<p class="empty">没有匹配的评论。</p>';
-      return;
-    }
+      // ══════════════════════════════════════
+      //  Auth Guard — 绝对安全防线
+      // ══════════════════════════════════════
+      function isAdminUser(user) {
+        if (!user) return false;
+        if (ADMIN_EMAILS.includes(user.email)) return true;
+        if (user.app_metadata?.role === 'admin') return true;
+        if (user.app_metadata?.is_admin === true) return true;
+        if (user.user_metadata?.is_admin === true) return true;
+        return false;
+      }
 
-    container.innerHTML = `
-      <div class="table-wrap"><table>
-        <thead><tr><th>用户</th><th>来源</th><th>内容</th><th>图片</th><th>时间</th><th>状态</th><th>操作</th></tr></thead>
-        <tbody>
-          ${rows.map(comment => {
-            const profile = commentProfileMap[comment.user_id] || {};
-            return `
-              <tr id="row-${comment.id}" style="${comment.is_hidden ? 'opacity:0.45' : ''}">
+      async function checkAdminFromDB(userId) {
+        try {
+          const { data } = await db()?.from('profiles').select('is_admin').eq('id', userId).maybeSingle();
+          return data?.is_admin === true;
+        } catch (_) { return false; }
+      }
+
+      async function enforceAuth() {
+        const client = db();
+        if (!client) { eject(); return; }
+
+        let user = window.currentUser || null;
+        if (!user) {
+          try {
+            const { data: { session } } = await client.auth.getSession();
+            user = session?.user || null;
+          } catch (_) { /* ignore */ }
+        }
+
+        if (!user) { eject(); return; }
+
+        const localAdmin = isAdminUser(user);
+        const dbAdmin = await checkAdminFromDB(user.id);
+
+        if (!localAdmin && !dbAdmin) { eject(); return; }
+
+        adminUser = user;
+        revealConsole(user);
+      }
+
+      function eject() {
+        window.location.replace('../index.html');
+      }
+
+      function revealConsole(user) {
+        document.getElementById('header-user').textContent = user.email || '';
+        headerEl.style.display = '';
+        mainEl.style.display = '';
+        guardWall.classList.add('fade-out');
+        setTimeout(() => { guardWall.style.display = 'none'; }, 450);
+
+        // 加载所有数据
+        loadDashboard();
+        fetchComments();
+        fetchUsers();
+        fetchResults();
+      }
+
+      // ══════════════════════════════════════
+      //  Tab 切换
+      // ══════════════════════════════════════
+      window.switchPanel = function (panelId, btn) {
+        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        const target = document.getElementById('panel-' + panelId);
+        if (target) {
+          target.classList.remove('active');
+          void target.offsetWidth;
+          target.classList.add('active');
+        }
+      };
+
+      // ══════════════════════════════════════
+      //  Panel 1: 全局真理看板（Dashboard）
+      // ══════════════════════════════════════
+      async function loadDashboard() {
+        const c = db();
+        if (!c) return;
+
+        const metaEl = document.getElementById('dash-meta');
+        metaEl.textContent = '数据拉取中...';
+
+        let commentsUnavailable = false;
+        let resultViewsUnavailable = false;
+
+        try {
+          // 用户 & 管理员
+          // 快捷计数器
+          const cnt = (table, filter) => {
+            let q = c.from(table).select('*', { count: 'exact', head: true });
+            if (filter) q = filter(q);
+            return q;
+          };
+
+          const [usersRes, adminRes] = await Promise.all([
+            cnt('profiles'), cnt('profiles', q => q.eq('is_admin', true))
+          ]);
+          animateNumber('s-users', usersRes.count || 0);
+          animateNumber('s-admins', adminRes.count || 0);
+
+          // 评论统计
+          const commentRes = await cnt('comments');
+          if (commentRes.error) {
+            commentsUnavailable = isMissingTable(commentRes.error, 'comments');
+            ['s-comments', 's-soullab-comments', 's-obj-comments', 's-hidden'].forEach(id => animateNumber(id, 0));
+          } else {
+            animateNumber('s-comments', commentRes.count || 0);
+            const [slRes, objRes, hiddenRes] = await Promise.all([
+              cnt('comments', q => q.eq('page_type', 'soullab')),
+              cnt('comments', q => q.eq('page_type', 'objtest')),
+              cnt('comments', q => q.eq('is_hidden', true))
+            ]);
+            animateNumber('s-soullab-comments', slRes.count || 0);
+            animateNumber('s-obj-comments', objRes.count || 0);
+            animateNumber('s-hidden', hiddenRes.count || 0);
+          }
+
+          // 测试参与统计
+          const [soullabRv, objtestRv] = await Promise.all([
+            cnt('result_views', q => q.eq('page_type', 'soullab')),
+            cnt('result_views', q => q.eq('page_type', 'objtest'))
+          ]);
+          if (soullabRv.error && objtestRv.error) {
+            resultViewsUnavailable = true;
+            animateNumber('s-soullab', 0);
+            animateNumber('s-objtest', 0);
+          } else {
+            animateNumber('s-soullab', soullabRv.error ? 0 : (soullabRv.count || 0));
+            animateNumber('s-objtest', objtestRv.error ? 0 : (objtestRv.count || 0));
+          }
+
+          // 状态行
+          const now = new Date().toLocaleString('zh-CN', { hour12: false });
+          let metaHtml = `当前登录：<strong>${esc(adminUser?.email || '未知')}</strong> · 数据快照：<strong>${now}</strong>`;
+          if (commentsUnavailable) metaHtml += '<br>⚠ comments 表缺失，评论功能不可用';
+          if (resultViewsUnavailable) metaHtml += '<br>⚠ result_views 表缺失，测试参与统计回退为 0';
+          metaEl.innerHTML = metaHtml;
+
+        } catch (err) {
+          metaEl.textContent = '数据拉取失败: ' + (err.message || '未知错误');
+        }
+      }
+
+      function animateNumber(elId, target) {
+        const el = document.getElementById(elId);
+        if (!el) return;
+        target = Number(target) || 0;
+        if (target === 0) { el.textContent = '0'; return; }
+
+        let current = 0;
+        const step = Math.max(1, Math.ceil(target / 30));
+        const timer = setInterval(() => {
+          current += step;
+          if (current >= target) {
+            current = target;
+            clearInterval(timer);
+          }
+          el.textContent = current.toLocaleString();
+        }, 28);
+      }
+
+      // ══════════════════════════════════════
+      //  Panel 2: 评论管理（Comments）
+      // ══════════════════════════════════════
+      window.fetchComments = async function () {
+        const c = db();
+        const area = document.getElementById('comments-table-area');
+        if (!c) { area.innerHTML = '<div class="empty-state">客户端未就绪</div>'; return; }
+
+        area.innerHTML = '<div class="loading-hint">评论档案加载中...</div>';
+
+        try {
+          const { data, error } = await c.from('comments').select('*').order('created_at', { ascending: false }).limit(300);
+          if (error) {
+            if (isMissingTable(error, 'comments')) {
+              area.innerHTML = '<div class="empty-state">comments 表缺失，评论管理暂不可用</div>';
+              return;
+            }
+            throw error;
+          }
+          commentCache = data || [];
+          commentProfileMap = await fetchProfileMap(commentCache.map(c => c.user_id));
+          renderComments();
+        } catch (err) {
+          area.innerHTML = `<div class="empty-state">加载失败: ${esc(err.message)}</div>`;
+        }
+      };
+
+      window.renderComments = function () {
+        const area = document.getElementById('comments-table-area');
+        const search = (document.getElementById('comment-search')?.value || '').trim().toLowerCase();
+        const pageFilter = document.getElementById('comment-page-filter')?.value || 'all';
+        const statusFilter = document.getElementById('comment-status-filter')?.value || 'all';
+
+        const rows = (commentCache || []).filter(c => {
+          const profile = commentProfileMap[c.user_id] || {};
+          const nickname = (profile.nickname || '').toLowerCase();
+          const content = (c.content || '').toLowerCase();
+          const matchSearch = !search || nickname.includes(search) || content.includes(search);
+          const matchPage = pageFilter === 'all' || c.page_type === pageFilter;
+          const matchStatus =
+            statusFilter === 'all' ||
+            (statusFilter === 'hidden' && c.is_hidden) ||
+            (statusFilter === 'visible' && !c.is_hidden);
+          return matchSearch && matchPage && matchStatus;
+        });
+
+        if (rows.length === 0) {
+          area.innerHTML = '<div class="empty-state">没有匹配的评论</div>';
+          return;
+        }
+
+        let html = `
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>用户</th>
+                <th>来源</th>
+                <th>内容</th>
+                <th>图片</th>
+                <th>时间</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>`;
+
+        rows.forEach(c => {
+          const profile = commentProfileMap[c.user_id] || {};
+          const pageLabel = c.page_type === 'soullab' ? '人格测试' : '客体化';
+          const imgCell = c.image_url
+            ? `<img class="comment-img-thumb" src="${escAttr(c.image_url)}" onclick="window.open(this.src)">`
+            : '<span class="cell-dim">—</span>';
+
+          html += `
+              <tr class="${c.is_hidden ? 'row-hidden' : ''}">
                 <td>
                   <span class="cell-user">
-                    ${renderAdminAvatar(getAdminAvatarValue(profile), comment.user_id)}
-                    <span>${escapeH(profile.nickname || '未知用户')}</span>
+                    ${renderAvatar(getAvatarValue(profile), c.user_id)}
+                    <span>${esc(profile.nickname || '未知用户')}</span>
                   </span>
                 </td>
-                <td><span class="badge">${comment.page_type === 'soullab' ? '人格测试' : '客体化测试'}</span></td>
-                <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeH(comment.content || '')}</td>
-                <td>${comment.image_url ? `<img class="comment-img-thumb" src="${escapeAttr(comment.image_url)}" onclick="window.open(this.src)">` : '-'}</td>
-                <td style="white-space:nowrap">${new Date(comment.created_at).toLocaleString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' })}</td>
-                <td>${comment.is_hidden ? '<span class="badge">已隐藏</span>' : '<span class="badge">正常</span>'}</td>
+                <td><span class="tag">${pageLabel}</span></td>
+                <td class="cell-truncate">${esc(c.content || '')}</td>
+                <td>${imgCell}</td>
+                <td class="cell-mono cell-dim" style="white-space:nowrap">${fmtShort(c.created_at)}</td>
+                <td>${c.is_hidden ? '<span class="tag tag--warn">已隐藏</span>' : '<span class="tag">正常</span>'}</td>
                 <td>
-                  <button class="btn-sm btn-warn" onclick="toggleHide('${comment.id}', ${!comment.is_hidden})">${comment.is_hidden ? '恢复' : '隐藏'}</button>
-                  <button class="btn-sm btn-danger" onclick="deleteC('${comment.id}')">删除</button>
+                  <span class="btn-gap">
+                    <button class="btn-sm btn-sm--warn" onclick="toggleHideComment('${c.id}', ${!c.is_hidden})">${c.is_hidden ? '恢复' : '隐藏'}</button>
+                    <button class="btn-sm btn-sm--danger" onclick="deleteComment('${c.id}')">删除</button>
+                  </span>
                 </td>
+              </tr>`;
+        });
+
+        html += `
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footer">共 ${rows.length} 条记录</div>`;
+
+        area.innerHTML = html;
+      };
+
+      window.toggleHideComment = async function (id, hide) {
+        await db()?.from('comments').update({ is_hidden: hide }).eq('id', id);
+        await Promise.all([fetchComments(), loadDashboard()]);
+      };
+
+      window.deleteComment = async function (id) {
+        if (!confirm('确定永久删除这条评论？')) return;
+        await db()?.from('comments').delete().eq('id', id);
+        await Promise.all([fetchComments(), loadDashboard()]);
+      };
+
+      // ══════════════════════════════════════
+      //  Panel 3: 灵魂档案库（Users）
+      // ══════════════════════════════════════
+      window.fetchUsers = async function () {
+        const c = db();
+        const area = document.getElementById('users-table-area');
+        if (!c) { area.innerHTML = '<div class="empty-state">客户端未就绪</div>'; return; }
+
+        area.innerHTML = '<div class="loading-hint">灵魂档案加载中...</div>';
+        try {
+          const { data, error } = await c.from('profiles').select('*').order('created_at', { ascending: false }).limit(500);
+          if (error) throw error;
+          usersCache = data || [];
+          renderUsers();
+        } catch (err) {
+          area.innerHTML = `<div class="empty-state">加载失败: ${esc(err.message)}</div>`;
+        }
+      };
+
+      window.renderUsers = function () {
+        const area = document.getElementById('users-table-area');
+        const keyword = (document.getElementById('user-search')?.value || '').trim().toLowerCase();
+
+        const filtered = usersCache.filter(u => {
+          if (!keyword) return true;
+          const haystack = `${u.nickname || ''} ${u.email || ''} ${u.is_admin ? '管理员' : '普通用户'} ${fmtDt(u.created_at)}`.toLowerCase();
+          return haystack.includes(keyword);
+        });
+
+        if (filtered.length === 0) {
+          area.innerHTML = '<div class="empty-state">无匹配档案</div>';
+          return;
+        }
+
+        let html = `
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>头像</th>
+                <th>昵称</th>
+                <th>邮箱</th>
+                <th>角色</th>
+                <th>注册时间</th>
+                <th>操作</th>
               </tr>
-            `;
-          }).join('')}
-        </tbody>
-      </table></div>
-    `;
-  }
+            </thead>
+            <tbody>`;
 
-  async function toggleHide(id, hide) {
-    await db.from('comments').update({ is_hidden: hide }).eq('id', id);
-    await Promise.all([loadComments(), loadStats()]);
-  }
+        filtered.forEach(u => {
+          html += `
+              <tr>
+                <td>${renderAvatar(getAvatarValue(u), u.id)}</td>
+                <td>${esc(u.nickname || '—')}</td>
+                <td class="cell-dim">${esc(u.email || '—')}</td>
+                <td>${u.is_admin ? '<span class="tag tag--accent">管理员</span>' : '<span class="tag">普通用户</span>'}</td>
+                <td class="cell-mono cell-dim">${fmtDt(u.created_at)}</td>
+                <td>
+                  <span class="btn-gap">
+                    <button class="btn-sm" onclick="toggleAdmin('${u.id}', ${!u.is_admin})">${u.is_admin ? '取消管理员' : '设为管理员'}</button>
+                    <button class="btn-sm btn-sm--danger" onclick="deleteUser('${u.id}', '${escAttr(u.nickname || u.email || '该用户')}')">删除</button>
+                  </span>
+                </td>
+              </tr>`;
+        });
 
-  async function deleteC(id) {
-    if (!confirm('确定永久删除这条评论？')) return;
-    await db.from('comments').delete().eq('id', id);
-    await Promise.all([loadComments(), loadStats()]);
-  }
+        html += `
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footer">共 ${filtered.length} 条记录${keyword ? ' (已过滤)' : ''}</div>`;
 
-  async function loadUsers() {
-    const { data, error } = await db
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(300);
+        area.innerHTML = html;
+      };
 
-    if (error) {
-      document.getElementById('tab-users').innerHTML = `<p class="empty">加载用户失败：${escapeH(error.message || '未知错误')}</p>`;
-      return;
-    }
+      window.toggleAdmin = async function (id, makeAdmin) {
+        await db()?.from('profiles').update({ is_admin: makeAdmin }).eq('id', id);
+        await Promise.all([fetchUsers(), loadDashboard()]);
+      };
 
-    userCache = data || [];
-    renderUsers();
-  }
+      window.deleteUser = async function (id, displayName) {
+        if (!confirm(`确定删除用户「${displayName}」？这会连同认证账号一起删除。`)) return;
+        const { error } = await db()?.rpc('admin_delete_user', { target_user_id: id });
+        if (error) { alert(`删除失败：${error.message || '请先执行管理员 SQL 脚本'}`); return; }
+        await Promise.all([fetchUsers(), fetchComments(), loadDashboard()]);
+      };
 
-  function renderUsers() {
-    const container = document.getElementById('tab-users');
-    const search = (document.getElementById('user-search')?.value || '').trim().toLowerCase();
-    const rows = (userCache || []).filter(user => {
-      const line = `${user.nickname || ''} ${user.email || ''} ${user.is_admin ? '管理员' : '普通用户'} ${(user.created_at ? new Date(user.created_at).toLocaleDateString('zh-CN') : '')}`.toLowerCase();
-      return !search || line.includes(search);
-    });
+      // ══════════════════════════════════════
+      //  Panel 4: 测试数据切片（Test Results）
+      // ══════════════════════════════════════
+      window.fetchResults = async function () {
+        const c = db();
+        const area = document.getElementById('results-table-area');
+        if (!c) { area.innerHTML = '<div class="empty-state">客户端未就绪</div>'; return; }
 
-    if (rows.length === 0) {
-      container.innerHTML = '<p class="empty">没有匹配的用户。</p>';
-      return;
-    }
+        area.innerHTML = '<div class="loading-hint">测试切片加载中...</div>';
+        try {
+          const { data, error } = await c.from('result_views').select('*').order('created_at', { ascending: false }).limit(200);
+          if (error) {
+            if (isMissingTable(error, 'result_views')) {
+              area.innerHTML = '<div class="empty-state">result_views 表尚未创建，测试数据暂不可用</div>';
+              return;
+            }
+            throw error;
+          }
+          resultsCache = data || [];
+          profilesMap = await fetchProfileMap(resultsCache.map(r => r.user_id));
+          renderResults();
+        } catch (err) {
+          area.innerHTML = `<div class="empty-state">加载失败: ${esc(err.message)}</div>`;
+        }
+      };
 
-    container.innerHTML = `
-      <div class="table-wrap"><table>
-        <thead><tr><th>头像</th><th>昵称</th><th>邮箱</th><th>角色</th><th>注册时间</th><th>操作</th></tr></thead>
-        <tbody>
-          ${rows.map(user => `
-            <tr>
-              <td>${renderAdminAvatar(getAdminAvatarValue(user), user.id)}</td>
-              <td>${escapeH(user.nickname || '')}</td>
-              <td>${escapeH(user.email || '-')}</td>
-              <td>${user.is_admin ? '<span class="badge">管理员</span>' : '<span class="badge">普通用户</span>'}</td>
-              <td>${user.created_at ? new Date(user.created_at).toLocaleDateString('zh-CN') : '-'}</td>
-              <td>
-                <button class="btn-sm" onclick="toggleAdmin('${user.id}', ${!user.is_admin})">${user.is_admin ? '取消管理员' : '设为管理员'}</button>
-                <button class="btn-sm btn-danger" onclick="deleteUserAccount('${user.id}', '${escapeAttr(user.nickname || user.email || '该用户')}')">删除用户</button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table></div>
-    `;
-  }
+      window.renderResults = function () {
+        const area = document.getElementById('results-table-area');
+        const keyword = (document.getElementById('result-search')?.value || '').trim().toLowerCase();
 
-  async function toggleAdmin(id, makeAdmin) {
-    await db.from('profiles').update({ is_admin: makeAdmin }).eq('id', id);
-    await Promise.all([loadUsers(), loadStats()]);
-  }
+        const typeMap = {
+          'soullab': '灵性人格',
+          'objtest': '客体化'
+        };
 
-  async function deleteUserAccount(id, displayName) {
-    if (!confirm(`确定删除用户「${displayName}」？这会连同认证账号一起删除。`)) return;
+        const filtered = resultsCache.filter(r => {
+          if (!keyword) return true;
+          const profile = profilesMap[r.user_id] || {};
+          const haystack = `${profile.nickname || ''} ${profile.email || ''} ${typeMap[r.page_type] || r.page_type || ''} ${r.result_key || ''} ${r.result_label || ''}`.toLowerCase();
+          return haystack.includes(keyword);
+        });
 
-    const { error } = await db.rpc('admin_delete_user', { target_user_id: id });
-    if (error) {
-      alert(`删除失败：${error.message || '请先执行管理员 SQL 脚本'}`);
-      return;
-    }
+        if (filtered.length === 0) {
+          area.innerHTML = '<div class="empty-state">无匹配测试记录</div>';
+          return;
+        }
 
-    await Promise.all([loadUsers(), loadComments(), loadStats()]);
-  }
+        let html = `
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>用户</th>
+                <th>测试类型</th>
+                <th>结果</th>
+                <th>时间</th>
+              </tr>
+            </thead>
+            <tbody>`;
 
-  function switchTab(tab, btn) {
-    document.querySelectorAll('.tabs button').forEach(button => button.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-comments').style.display = tab === 'comments' ? 'block' : 'none';
-    document.getElementById('tab-users').style.display = tab === 'users' ? 'block' : 'none';
-    document.getElementById('comments-toolbar').style.display = tab === 'comments' ? 'grid' : 'none';
-    document.getElementById('users-toolbar').style.display = tab === 'users' ? 'grid' : 'none';
-  }
+        filtered.forEach((r, i) => {
+          const profile = profilesMap[r.user_id] || {};
+          const userName = profile.nickname || profile.email || (r.user_id ? r.user_id.slice(0, 8) + '...' : '匿名');
+          const typeLabel = typeMap[r.page_type] || r.page_type || '—';
+          const resultStr = r.result_label || r.result_key || r.score || '—';
 
-  function escapeH(text) {
-    const div = document.createElement('div');
-    div.textContent = text || '';
-    return div.innerHTML;
-  }
+          html += `
+              <tr>
+                <td class="cell-dim cell-mono">${String(i + 1).padStart(3, '0')}</td>
+                <td>${esc(userName)}</td>
+                <td><span class="tag">${esc(typeLabel)}</span></td>
+                <td><span class="tag tag--accent">${esc(resultStr)}</span></td>
+                <td class="cell-mono cell-dim">${fmtDt(r.created_at, true)}</td>
+              </tr>`;
+        });
 
-  function escapeAttr(value) {
-    return String(value || '')
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  }
-</script>
+        html += `
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footer">共 ${filtered.length} 条记录${keyword ? ' (已过滤)' : ''}</div>`;
+
+        area.innerHTML = html;
+      };
+
+      // ══════════════════════════════════════
+      //  退出登录
+      // ══════════════════════════════════════
+      window.doLogout = async function () {
+        try { await db()?.auth.signOut(); } catch (_) { /* ignore */ }
+        window.location.replace('../index.html');
+      };
+
+      // ══════════════════════════════════════
+      //  启动
+      // ══════════════════════════════════════
+      function boot() {
+        const c = db();
+        if (!c?.auth) { setTimeout(eject, 500); return; }
+
+        const { data: { subscription } } = c.auth.onAuthStateChange((_event, session) => {
+          window.currentUser = session?.user || null;
+        });
+        setTimeout(() => {
+          enforceAuth();
+          subscription?.unsubscribe();
+        }, 800);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+      } else {
+        boot();
+      }
+
+    })();
+  </script>
+
 </body>
-</html>
 
+</html>
